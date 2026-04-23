@@ -1,0 +1,428 @@
+openapi: 3.0.0
+info:
+  title: Transactions API
+  version: 1.0.0
+  description: API specification for transactions resource
+servers:
+- url: https://api.example.com
+paths:
+  /api/transactions:
+    servers: []
+    get:
+      deprecated: true
+      tags:
+      - transactions
+      operationId: get-transactions
+      parameters:
+      - $ref: '#/components/parameters/PaymentSourceIdQuery'
+      - name: page
+        description: The page to be retrieved.  If not specified, the default value is `0`.
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: size
+        description: The maximum number of transactions to return.  If not specified, the default value is `20`.
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 20
+      responses:
+        '200':
+          description: OK
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                type: object
+                properties:
+                  _links:
+                    $ref: '#/components/schemas/PagedCollectionResourceLinks'
+                  _embedded:
+                    type: object
+                    properties:
+                      transactions:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TransactionSchema'
+                  page:
+                    $ref: '#/components/schemas/page'
+              examples:
+                list-transactions-by-consumer:
+                  value:
+                    _links:
+                      self:
+                        href: https://api.epi-services.eu/api/transactions?paymentSourceId=9d95ca27-2780-403c-8922-0a05189aec0f&page=0&size=100
+                      first:
+                        href: https://api.epi-services.eu/api/transactions?paymentSourceId=9d95ca27-2780-403c-8922-0a05189aec0fpage=0&size=100
+                      last:
+                        href: https://api.epi-services.eu/api/transactions?paymentSourceId=9d95ca27-2780-403c-8922-0a05189aec0fpage=0&size=100
+                    _embedded:
+                      transactions:
+                      - id: cfac255a-bf4b-49ef-b7e9-2269d98f5887
+                        amount:
+                          euroCents: 1500
+                        category:
+                          type: P2PPayment
+                          direction: Incoming
+                        contact:
+                          name: Alice
+                        createdAt: '2023-08-21T12:44:53.679314964Z'
+                        _links:
+                          self:
+                            href: https://api.epi-services.eu/api/transactions/cfac255a-bf4b-49ef-b7e9-2269d98f5887
+                    page:
+                      size: 1
+                      totalElements: 1
+                      totalPages: 1
+                      number: 0
+                      requestedPageSize: 100
+                      limitReached: false
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+        '403':
+          $ref: '#/components/responses/errorResponse403'
+      description: "## Transaction history\n\n  > **\u26A0\uFE0F Advance notice of breaking change**: In August 2026, the [List transactions \\[Wallet\\]](ref:get-transactions) endpoint will be removed\
+        \ in favour of [List activities \\[Wallet\\]](ref:get-activities).\n\nA Wero digital wallet on a consumer\u2019s mobile device can contain means of payment that represent different payment sources.\
+        \ Each payment source has its own transaction history.\nIn this context, a transaction begins after the SCT Inst transfer process begins.  The transaction history does not include general person-to-person\
+        \ activities.\n\n## Listing transactions\nThe Wero digital wallet can retrieve from EPI central services a list of all transactions that correspond to payments that the consumer made or received.\
+        \  If the `paymentSourceId` is provided in the request, the wallet retrieves a list of transactions only for the specified payment source.\n## Pagination  \nThe list is paginated. If `page.totalPages`\
+        \ is greater than `1`, retrieval of the full list requires more than one API call. For more information, see: [Pagination](ref:pagination)."
+      security:
+      - BearerAccessToken: []
+      summary: List transactions [Wallet]
+components:
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type, only in the context of the provided endpoint.
+          default: about:blank
+          example: /some/uri-reference
+          not:
+            enum:
+            - /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          example: some title for the error situation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem, which helps locate the problem and describes how to proceed.
+          example: some description for the error situation
+        instance:
+          type: string
+          format: uri-reference
+          description: A URI reference that identifies the specific occurrence of the problem, for example, by adding a fragment identifier or sub-path to the problem type. Can be used to locate the root
+            of the problem in the source code.
+          example: /some/uri-reference#specific-occurrence-context
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+      required:
+      - type
+      - title
+      - status
+    page:
+      type: object
+      examples:
+      - size: 1
+        totalElements: 1
+        totalPages: 1
+        number: 0
+        requestedPageSize: 10
+        limitReached: false
+      properties:
+        size:
+          type: integer
+          description: The number of elements on the page.
+        totalElements:
+          type: integer
+          description: The total number of elements available with the query.
+        totalPages:
+          type: integer
+          description: The total number of pages available, using the requested page size.
+        number:
+          type: integer
+          description: The number of the current page. Page numbers start at `0` and continue to the total number of pages.
+        requestedPageSize:
+          type: integer
+          description: The requested page size. The value of "size" might differ for the last page if the last page is not full.
+        limitReached:
+          type: boolean
+          description: If `true`, an internal limit when retrieving results was exceeded. Not all elements are returned.
+      description: A paginated resource is a HAL resource. The resource contains the page object, which describes the provided subset of data. The data is provided as an embedded collection resource. The
+        name of the collection depends on the endpoint. HAL links are also provided, for navigation.
+      title: Structure of a paginated response
+      required:
+      - size
+      - totalElements
+      - totalPages
+      - number
+      - requestedPageSize
+      - limitReached
+    TransactionDirection:
+      type: string
+      description: The direction of the money flow.
+      enum:
+      - Outgoing
+      - Incoming
+    Money:
+      title: Money
+      type: object
+      properties:
+        euroCents:
+          type: integer
+          description: 'The minimum `euroCents` value is `1`. `euroCents: 100` represents one euro.'
+      description: 'Amounts of money in the API are represented as objects with a single property that describes both the currency (for example, euro) and the unit (which is usually the minor unit of the
+        currency, for example, cents).
+
+
+        Currently, the only supported representation is euroCents, as shown in the example.
+
+
+        Other currencies will be added as needed.'
+      examples:
+      - euroCents: 4900
+    TransactionCategory:
+      type: object
+      description: The category of the transaction.
+      properties:
+        type:
+          $ref: '#/components/schemas/TransactionType'
+        direction:
+          $ref: '#/components/schemas/TransactionDirection'
+    PagedCollectionResourceLinks:
+      type: object
+      properties:
+        self:
+          $ref: '#/components/schemas/link'
+        first:
+          $ref: '#/components/schemas/link'
+        last:
+          $ref: '#/components/schemas/link'
+        prev:
+          $ref: '#/components/schemas/link'
+        next:
+          $ref: '#/components/schemas/link'
+      required:
+      - self
+      - first
+      - last
+    TransactionSchema:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the transaction.
+          example: 00000000-0000-0000-0000-000000009000
+        amount:
+          $ref: '#/components/schemas/Money'
+        category:
+          $ref: '#/components/schemas/TransactionCategory'
+        contact:
+          description: The party receiving the money.
+          type: object
+          required:
+          - name
+          properties:
+            name:
+              description: The name of the party receiving the money. However, in the context of a Wero user sending money to a Paylib user, this will be a phone number.
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+          description: 'Date and time at which the transaction was created. (Format: Timestamp)'
+        _links:
+          type: object
+          description: HAL links to related resources.
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+      required:
+      - id
+      - amount
+      - category
+      - contact
+      - _links
+    ConstraintViolationProblem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type only in the context of the provided endpoint.
+          const: /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          default: Constraint Violation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          default: 400
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+        violations:
+          type: array
+          description: A list of constraint violations.
+          items:
+            type: object
+            required:
+            - field
+            - message
+            properties:
+              field:
+                type: string
+                description: The name of the field that caused the constraint violation.
+              message:
+                type: string
+                description: A technical message that describes the constraint violation, in English.
+              userMessageKey:
+                type: string
+                description: A key that describes the type of constraint violation, useful to report user input validation error. The key can be used to look up a localised message for instance, that can
+                  then be interpolated using the `userMessageValue`.
+                example: constraint.string.min-length
+                oneOf:
+                - type: string
+                  title: Standard constraint violation key
+                  description: 'All known standard constraint violation keys: * **constraint.required**: The field is required. * **constraint.type**: The field must be of the correct type. * **constraint.enum**:
+                    The field must be one of the allowed values. `userMessageValue` contains the list as a string value. * **constraint.const**: The field must be a specific value. `userMessageValue` contains
+                    the value as a string value. * **constraint.number.multiple-of**: The field must be a multiple of a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-inclusive**:
+                    The field must be less than or equal to a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-exclusive**: The field must be less
+                    than a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.minimum-inclusive**: The field must be greater than or equal to a specific number.
+                    `userMessageValue` contains the number as a string value.            * **constraint.number.minimum-exclusive**: The field must be greater than a specific number. `userMessageValue` contains
+                    the number as a string value. * **constraint.string.max-length**: The field must be at most a specific number of characters long. `userMessageValue` contains the number as a string value.
+                    * **constraint.string.min-length**: The field must be at least a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.min-length-not-blank**:
+                    The field must be at least a specific number of characters long and not blank. `userMessageValue` contains the number as a string value. * **constraint.string.max-graphemes**: The field
+                    must be at most a specific number of graphemes long. `userMessageValue` contains the number as a string value. * **constraint.string.pattern**: The field must match a specific pattern.
+                    * **constraint.string.length**: The field must be a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.url**: The field
+                    must be a valid URL. * **constraint.string.url-https**: The field must be a valid HTTPS URL. * **constraint.string.uuid4**: The field must be a valid UUID v4. * **constraint.string.email**:
+                    The field must be a valid email address. * **constraint.string.phone-number**: The field must be a valid phone number. * **constraint.duration.min-seconds**: The field must be at least
+                    a specific number of seconds long. `userMessageValue` contains the number as a string value. * **constraint.duration.max-days**: The field must be at most a specific number of days long.
+                    `userMessageValue` contains the number as a string value. * **constraint.datetime.before**: The field must be before a specific date and time. `userMessageValue` contains the `datetime`
+                    as a timestamp string value. * **constraint.array.min-items**: The field must contain at least a specific number of items. `userMessageValue` contains the number as a string value. *
+                    **constraint.array.max-items**: The field must contain at most a specific number of items. `userMessageValue` contains the number as a string value. * **constraint.array.unique-items**:
+                    The field must contain only unique items. * **constraint.amount.maximum**: The field must be less than or equal to a specific amount. * **constraint.amount.minimum**: The field must
+                    be greater than or equal to a specific amount. * **constraint.currency-supported**: The field must be a supported currency.'
+                  enum:
+                  - constraint.required
+                  - constraint.type
+                  - constraint.enum
+                  - constraint.const
+                  - constraint.number.multiple-of
+                  - constraint.number.maximum-inclusive
+                  - constraint.number.maximum-exclusive
+                  - constraint.number.minimum-inclusive
+                  - constraint.number.minimum-exclusive
+                  - constraint.string.max-length
+                  - constraint.string.min-length
+                  - constraint.string.min-length-not-blank
+                  - constraint.string.max-graphemes
+                  - constraint.string.pattern
+                  - constraint.string.length
+                  - constraint.string.url
+                  - constraint.string.url-https
+                  - constraint.string.uuid4
+                  - constraint.string.email
+                  - constraint.string.phone-number
+                  - constraint.duration.min-seconds
+                  - constraint.duration.max-days
+                  - constraint.datetime.before
+                  - constraint.array.min-items
+                  - constraint.array.max-items
+                  - constraint.array.unique-items
+                  - constraint.amount.maximum
+                  - constraint.amount.minimum
+                  - constraint.currency-supported
+                - type: string
+                  description: Placeholder for a future user message key.
+                  title: Placeholder for future message keys
+                  not:
+                    enum:
+                    - constraint.required
+                    - constraint.type
+                    - constraint.enum
+                    - constraint.const
+                    - constraint.number.multiple-of
+                    - constraint.number.maximum-inclusive
+                    - constraint.number.maximum-exclusive
+                    - constraint.number.minimum-inclusive
+                    - constraint.number.minimum-exclusive
+                    - constraint.string.max-length
+                    - constraint.string.min-length
+                    - constraint.string.min-length-not-blank
+                    - constraint.string.max-graphemes
+                    - constraint.string.pattern
+                    - constraint.string.length
+                    - constraint.string.url
+                    - constraint.string.url-https
+                    - constraint.string.uuid4
+                    - constraint.string.email
+                    - constraint.string.phone-number
+                    - constraint.duration.min-seconds
+                    - constraint.duration.max-days
+                    - constraint.datetime.before
+                    - constraint.array.min-items
+                    - constraint.array.max-items
+                    - constraint.array.unique-items
+                    - constraint.amount.maximum
+                    - constraint.amount.minimum
+                    - constraint.currency-supported
+              userMessageValue:
+                type: string
+                description: A string value that can be used to replace a placeholder in the localised message.
+      required:
+      - type
+      - title
+      - status
+      - violations
+    TransactionType:
+      type: string
+      description: The type of the transaction. This enumeration is extensible; additional values may be accepted in the future.
+      oneOf:
+      - const: P2PPayment
+        description: The consumer sent a P2P payment.
+        title: P2PPayment
+      - const: P2PRequest
+        description: The consumer sent a P2P payment request.
+        title: P2PRequest
+      - type: string
+        not:
+          enum:
+          - P2PPayment
+          - P2PRequest
+        description: Any other transaction type value.
+        title: Any String
+    link:
+      type: object
+      properties:
+        href:
+          type: string
+          format: uri
+        name:
+          type: string
+      required:
+      - href

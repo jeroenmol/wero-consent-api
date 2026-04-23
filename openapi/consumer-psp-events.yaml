@@ -1,0 +1,595 @@
+openapi: 3.0.0
+info:
+  title: Consumer PSP Events API
+  version: 1.0.0
+  description: The consumer PSP events resource enables EPI central services to receive notifications about certain events that happen on the consumer PSP side.
+servers:
+  - url: https://api.example.com
+paths:
+  /api/consumer-psp-events:
+    servers: []
+    post:
+      tags:
+        - consumer-psp-events
+      x-slo:
+        availability: 99.95
+        latency:
+          p95: 300
+          p99: 600
+          max: 1800
+        throughput: N/A
+        severity: SEV 1
+        status: DRAFT
+      operationId: post-consumer-psp-events
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/CaptureStatusChangedRequest'
+                - $ref: '#/components/schemas/RefundStatusChangedRequest'
+                - $ref: '#/components/schemas/ChargebackStatusChangedRequest'
+                - $ref: '#/components/schemas/MoneyTransferStatusChangedRequest'
+                - $ref: '#/components/schemas/AccountAuthorizedPersonAccessRevokedRequest'
+              discriminator:
+                propertyName: name
+                mapping:
+                  CaptureStatusChanged: '#/components/schemas/CaptureStatusChangedRequest'
+                  RefundStatusChanged: '#/components/schemas/RefundStatusChangedRequest'
+                  ChargebackStatusChanged: '#/components/schemas/ChargebackStatusChangedRequest'
+                  MoneyTransferStatusChanged: '#/components/schemas/MoneyTransferStatusChangedRequest'
+                  AccountAuthorizedPersonAccessRevoked: '#/components/schemas/AccountAuthorizedPersonAccessRevokedRequest'
+        description: ''
+      responses:
+        '202':
+          description: Accepted
+        '400':
+          description: Bad Request
+      description: |-
+        The consumer PSP events resource enables EPI central services to receive notifications about certain events that happen on the consumer PSP side. These events relate to the processing of payment capture requests, payment settlements, and changes to payment source data. For more information, see [Activities monitored in the EPI Central Services](doc:settlement-monitoring#4111-activities-monitored-in-the-epi-central-services). Future versions of this resource might notify EPI central services of additional event types.
+components:
+  schemas:
+    Money:
+      title: Money
+      type: object
+      properties:
+        euroCents:
+          type: integer
+          description: 'The minimum `euroCents` value is `1`. `euroCents: 100` represents one euro.'
+      description: |-
+        Amounts of money in the API are represented as objects with a single property that describes both the currency (for example, euro) and the unit (which is usually the minor unit of the currency, for example, cents).
+
+        Currently, the only supported representation is euroCents, as shown in the example.
+
+        Other currencies will be added as needed.
+      examples:
+        - euroCents: 4900
+    SettlementMethod:
+      title: SettlementMethod
+      type: string
+      enum:
+        - SCTInst
+        - OnUs
+        - FinancialGuarantees
+      description: |-
+        The consumer PSP can settle a capture by using one of the following settlement methods:
+
+        |       Method        |                            Description                                                                                                                                                          |
+        |:-------------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+        | SCTInst             | A SEPA instant credit transfer (SCT Inst) is the default settlement method for Wero transactions.                                                                                               |
+        | OnUs                | On-us transactions are those for which the payment sources of the originator and of the beneficiary are with the same consumer PSP.                                                             |
+        | FinancialGuarantees | Applicable only to e/m-commerce and point-of-sale payments. Used by EPI only when consumer PSPs have already made financial guarantees. For details, see the _EPI Financial Guarantees Policy_. |
+    CaptureStatusFailed:
+      type: object
+      title: Failed
+      description: The consumer PSP accepted the capture request but encountered a technical error while processing the request.
+      required:
+        - value
+        - at
+        - technicalReason
+      properties:
+        value:
+          type: string
+          const: Failed
+        at:
+          type: string
+          format: date-time
+          description: Date and time when processing of the capture request failed..
+        technicalReason:
+          type: string
+          description: Technical reason why the capture failed.
+    CaptureStatusPending:
+      type: object
+      title: Pending
+      description: |
+        While processing the capture, the consumer PSP encountered a problem. The consumer PSP must either try to resolve it and then update the capture status accordingly,  or must set the `reinitiationRequired` property to `true` to indicate that EPI central services must re-initiate the capture.
+        EPI central services will poll for an updated capture status for up to 5 days.
+      properties:
+        value:
+          type: string
+          const: Pending
+        at:
+          type: string
+          format: date-time
+          description: Date and time when the consumer PSP encountered the problem. Should be the value provided in the T056 SCT Inst element.
+        reasonCode:
+          type: string
+          description: Reason code (from ExternalStatusReason1Code) indicating why the capture is pending.
+        reason:
+          type: string
+          description: If the reason code is 'NARR', this property must contain the proprietary reason why the capture is pending. Otherwise, it must contain a comprehensive description of the reason code.
+        reinitiationRequired:
+          type: boolean
+          default: false
+          description: 'Indicates whether the consumer PSP requires EPI central services to re-initiate the capture. This property is optional and defaults to `false` if not provided.      '
+      required:
+        - value
+        - at
+        - reasonCode
+        - reason
+    CaptureStatusRejected:
+      type: object
+      title: Rejected
+      description: The consumer PSP, clearing and settlement mechanism (CSM) provider, or beneficiary PSP has rejected the capture.
+      properties:
+        value:
+          type: string
+          const: Rejected
+        at:
+          type: string
+          format: date-time
+          description: Date and time at which the consumer PSP rejected the capture request. Should be the value provided in the T056 SCT Inst element.
+        reasonCode:
+          type: string
+          description: Reason code (from ExternalStatusReason1Code) indicating why the capture was rejected.
+        reason:
+          type: string
+          description: If the reason code is 'NARR', this property must contain the proprietary reason why the capture was rejected. Otherwise, it must contain a comprehensive description of the reason code.
+      required:
+        - value
+        - at
+        - reasonCode
+        - reason
+    CaptureStatusSettled:
+      type: object
+      title: Settled
+      description: The consumer PSP has completed processing and settlement of the requested capture.
+      properties:
+        value:
+          type: string
+          const: Settled
+        at:
+          type: string
+          format: date-time
+          description: Date and time when the captured payment was settled. Should be the value provided in the T056 SCT Inst element.
+        originatorPspReference:
+          type: string
+          description: |
+            Originator PSP's reference for the SCT Inst.  The reference of the SCT Inst Transaction given by the originator PSP, which is delivered unaltered to the beneficiary PSP.
+        settlementMethod:
+          $ref: '#/components/schemas/SettlementMethod'
+      required:
+        - value
+        - at
+        - originatorPspReference
+        - settlementMethod
+    CaptureStatusForChange:
+      description: |-
+        The consumer PSP can notify EPI central services of one of the following statuses for the capture:
+
+        |       Status      |                            Description                                                            |
+        |:-----------------:|:-------------------------------------------------------------------------------------------------:|
+        | Pending           | While processing the capture, the consumer PSP encountered a problem and is trying to resolve it. |
+        | Settled           | The capture has been successfully processed by the consumer PSP.                                  |
+        | Rejected          | The consumer PSP, clearing and settlement mechanism (CSM) provider, or beneficiary PSP has rejected the capture.|
+        | Failed            | The capture has failed for technical reasons.                                                     |
+      discriminator:
+        propertyName: value
+        mapping:
+          Failed: '#/components/schemas/CaptureStatusFailed'
+          Pending: '#/components/schemas/CaptureStatusPending'
+          Rejected: '#/components/schemas/CaptureStatusRejected'
+          Settled: '#/components/schemas/CaptureStatusSettled'
+      oneOf:
+        - $ref: '#/components/schemas/CaptureStatusFailed'
+        - $ref: '#/components/schemas/CaptureStatusPending'
+        - $ref: '#/components/schemas/CaptureStatusRejected'
+        - $ref: '#/components/schemas/CaptureStatusSettled'
+    CaptureStatusChangedRequest:
+      title: Capture Status Changed
+      type: object
+      required:
+        - name
+        - id
+        - rootAggregateId
+        - captureId
+        - status
+      properties:
+        name:
+          type: string
+          const: CaptureStatusChanged
+        id:
+          type: string
+          format: uuid
+          description: ID of this event for EPI to differentiate it from other events. Can be a random UUID.
+        rootAggregateId:
+          type: string
+          format: uuid
+          description: 'EPI central services provides this ID in the [capture request endpoint call](ref:create-consumer-psp-capture) to link an individual capture request endpoint call to the capture request''s subsequent status changes as they are received from the consumer PSP. '
+        captureId:
+          type: string
+          format: uuid
+          description: ID of the Capture resource at EPI central services.
+        status:
+          $ref: '#/components/schemas/CaptureStatusForChange'
+      examples:
+        - name: CaptureStatusChanged
+          id: c0204631-b190-425d-bfa6-aa053b88f382
+          rootAggregateId: d8bcb97b-3524-4eb1-bde3-419fbe0a9e2e
+          captureId: f2f84a80-2c26-458e-bcfc-f2b5a92228c9
+          status:
+            value: Settled
+            at: '2023-05-03T10:38:30.799631719Z'
+            originatorPspReference: '1234567890'
+            settlementMethod: SCTInst
+    RefundStatusFailed:
+      type: object
+      title: Failed
+      description: The refund has failed for technical reasons.
+      properties:
+        value:
+          type: string
+          const: Failed
+        technicalReason:
+          type: string
+          description: The technical reason why the refund failed.
+        at:
+          type: string
+          format: date-time
+          description: The date and time of the incoming SCT-Inst.
+      required:
+        - value
+        - at
+        - technicalReason
+    RefundStatusRejected:
+      type: object
+      title: Rejected
+      description: The consumer PSP or beneficiary PSP has rejected the refund.
+      properties:
+        value:
+          type: string
+          const: Rejected
+        reasonCode:
+          type: string
+          description: Reason code (from ExternalStatusReasonCode) indicating why the refund was rejected.
+        reason:
+          type: string
+          description: Proprietary reason why the refund was rejected.
+        at:
+          type: string
+          format: date-time
+          description: The date and time of the incoming SCT-Inst
+      required:
+        - value
+        - at
+        - reasonCode
+        - reason
+    RefundStatusSettled:
+      type: object
+      title: Settled
+      description: The refund has been settled.
+      properties:
+        value:
+          type: string
+          const: Settled
+        at:
+          type: string
+          format: date-time
+          description: The date and time of the incoming SCT-Inst
+      required:
+        - value
+        - at
+    RefundStatusForChange:
+      description: |-
+        The consumer PSP can notify EPI central services of one of the following statuses for the refund settlement:
+
+        |       Status      |                            Description                                                            |
+        |:-----------------:|:-------------------------------------------------------------------------------------------------:|
+        | Settled           | The consumer PSP has successfully processed the refund settlement.                                |
+        | Rejected          | The consumer PSP has rejected the refund settlement.                                              |
+        | Failed            | The refund settlement has failed for technical reasons.                                           |
+      discriminator:
+        propertyName: value
+        mapping:
+          Failed: '#/components/schemas/RefundStatusFailed'
+          Rejected: '#/components/schemas/RefundStatusRejected'
+          Settled: '#/components/schemas/RefundStatusSettled'
+      oneOf:
+        - $ref: '#/components/schemas/RefundStatusFailed'
+        - $ref: '#/components/schemas/RefundStatusRejected'
+        - $ref: '#/components/schemas/RefundStatusSettled'
+    RefundStatusChangedRequest:
+      title: Refund Status Changed
+      type: object
+      required:
+        - name
+        - id
+        - refundId
+        - status
+        - amount
+      properties:
+        name:
+          type: string
+          const: RefundStatusChanged
+        id:
+          type: string
+          format: uuid
+          description: ID of this event for EPI to differentiate it from other events. Can be a random UUID.
+        refundId:
+          type: string
+          format: uuid
+          description: ID of the refund at EPI central services. This ID can be found either in the remittance info (T009) (first UUID) or in the originator's reference (T014) but without any '-'.
+        status:
+          $ref: '#/components/schemas/RefundStatusForChange'
+        remittanceInfo:
+          type: string
+          description: The remittance information that is provided in the incoming SCT-Inst
+        amount:
+          $ref: '#/components/schemas/Money'
+          description: Amount of the incoming SCT-Inst.
+      examples:
+        - name: RefundStatusChanged
+          id: c0204631-b190-425d-bfa6-aa053b88f382
+          refundId: d8bcb97b-3524-4eb1-bde3-419fbe0a9e2e
+          amount:
+            euroCents: 4900
+          status:
+            value: Settled
+            at: '2023-05-03T10:38:30.799631719Z'
+    ChargebackStatusChangedRequest:
+      title: Chargeback Status Changed
+      type: object
+      required:
+        - name
+        - id
+        - disputeId
+        - remittanceInfo
+        - amount
+        - at
+      properties:
+        name:
+          type: string
+          const: ChargebackStatusChanged
+        id:
+          type: string
+          format: uuid
+          description: ID of this event for EPI to differentiate it from other events. Can be a random UUID.
+        disputeId:
+          type: string
+          format: uuid
+          description: ID of the dispute at EPI central services.
+        status:
+          default: Settled
+          enum:
+            - Settled
+        remittanceInfo:
+          type: string
+          description: The remittance information that is provided in the incoming SCT-Inst
+        amount:
+          $ref: '#/components/schemas/Money'
+          description: Amount of the incoming SCT-Inst.
+        at:
+          type: string
+          format: date-time
+          description: The date and time of the incoming SCT-Inst
+        stage:
+          type: string
+          description: The stage of the chargeback process.
+          default: ChargebackRepresented
+          enum:
+            - ChargebackRepresented
+      examples:
+        - name: ChargebackStatusChanged
+          id: c0204631-b190-425d-bfa6-aa053b88f382
+          disputeId: d8bcb97b-3524-4eb1-bde3-419fbe0a9e2e
+          at: '2023-05-03T10:38:30.799631719Z'
+          amount:
+            euroCents: 4900
+          status: Settled
+          stage: ChargebackRepresented
+          remittanceInfo: SCT-Inst remittance information
+    MTStatusAccepted:
+      title: Accepted
+      description: The money transfer request has been accepted.
+      type: object
+      required:
+        - value
+        - at
+      properties:
+        value:
+          type: string
+          enum:
+            - Accepted
+        at:
+          type: string
+          format: date-time
+          example: '2023-05-03T10:38:49.475916359Z'
+          description: Date and time at which the money transfer was accepted. Must be a valid UTC timestamp.
+    MTStatusFailed:
+      title: Failed
+      description: The SCT-inst has failed. The reason for the failure must be reported.
+      type: object
+      required:
+        - value
+        - at
+        - failureCode
+      properties:
+        value:
+          type: string
+          enum:
+            - Failed
+        at:
+          type: string
+          format: date-time
+          example: '2023-05-03T10:38:49.475916359Z'
+          description: Date and time at which the SCT Inst was initiated (T056). If no SCT Inst was initiated, this string is the date and time of the failure. Must be a valid UTC timestamp.
+        failureCode:
+          type: string
+          minLength: 4
+          maxLength: 4
+          description: Failure code (external code of R004, ExternalStatusReason1Code). For more information, see [SCT Inst failures and P2P payments](doc:sct-inst-failure-handling). Failures on the consumer PSP side that are unrelated to the SCT Inst settlement layer must use `NARR`
+        failureReason:
+          type: string
+          minLength: 1
+          maxLength: 105
+          description: Failure reason (proprietary reason R004). For more information, see [SCT Inst failures and P2P payments](doc:sct-inst-failure-handling). Failures on the consumer PSP side that are unrelated to the SCT Inst settlement layer must use `Issue on consumer PSP side`.
+    MTStatusSettled:
+      title: Settled
+      description: The SCT-inst has been completed / settled. The originator psp reference is required.
+      type: object
+      required:
+        - value
+        - at
+        - originatorPspReference
+      properties:
+        value:
+          type: string
+          enum:
+            - Settled
+        at:
+          type: string
+          format: date-time
+          example: '2023-05-03T10:38:49.475916359Z'
+          description: Date and time at which the SCT Inst was made (T056). Must be a valid UTC timestamp.
+        originatorPspReference:
+          type: string
+          maxLength: 35
+          description: The PSP reference of the original payment request (T054).
+        settlementMethod:
+          type: string
+          enum:
+            - SCTInst
+            - OnUs
+          example: SCTInst
+          description: One of the listed settlement methods.
+    MTStatusRejected:
+      title: Rejected
+      description: The payer's PSP rejected the payment and therefore did not initiate an SCT Inst.
+      type: object
+      required:
+        - value
+        - at
+        - rejectionReason
+      properties:
+        value:
+          type: string
+          enum:
+            - Rejected
+        at:
+          type: string
+          format: date-time
+          description: Date and time at which the payer's PSP rejected the payment. Must be a valid UTC timestamp.
+          examples:
+            - '2023-05-03T10:38:49.475916359Z'
+        rejectionReason:
+          description: Reason for the rejection. The value must be `SecurityConcern`, `InsufficientFunds`, `TransferLimitReached`, or `Unspecified`. Custom values cannot be used.
+          type: string
+          oneOf:
+            - const: SecurityConcern
+              description: Suspected fraud, money laundering or other security concern.
+              title: SecurityConcern
+            - const: InsufficientFunds
+              description: The payer's account has insufficient funds to complete the payment.
+              title: InsufficientFunds
+            - const: TransferLimitReached
+              description: The payer has reached their transfer limit.
+              title: TransferLimitReached
+            - const: Unspecified
+              description: Unspecified reason.
+              title: Unspecified
+            - type: string
+              not:
+                enum:
+                  - SecurityConcern
+                  - InsufficientFunds
+                  - TransferLimitReached
+                  - Unspecified
+              description: Placeholder for a future reason, to be defined. This cannot be used to add custom reasons.
+              title: Any String
+        rejectionMessage:
+          type: string
+          description: Detailed description of the rejection reason from the PSP. Will be forwarded as-is to the payer.
+          minLength: 1
+          maxLength: 140
+    MoneyTransferStatus:
+      title: Status
+      oneOf:
+        - $ref: '#/components/schemas/MTStatusAccepted'
+        - $ref: '#/components/schemas/MTStatusFailed'
+        - $ref: '#/components/schemas/MTStatusSettled'
+        - $ref: '#/components/schemas/MTStatusRejected'
+      discriminator:
+        propertyName: value
+        mapping:
+          Accepted: '#/components/schemas/MTStatusAccepted'
+          Failed: '#/components/schemas/MTStatusFailed'
+          Settled: '#/components/schemas/MTStatusSettled'
+          Rejected: '#/components/schemas/MTStatusRejected'
+    MoneyTransferStatusChangedRequest:
+      title: Money Transfer Status Changed
+      type: object
+      required:
+        - name
+        - id
+        - resourceId
+        - status
+      properties:
+        name:
+          type: string
+          const: MoneyTransferStatusChanged
+        id:
+          type: string
+          format: uuid
+          description: ID of this event for EPI to differentiate it from other events. Can be a random UUID.
+        resourceId:
+          type: string
+          format: uuid
+          description: The P2P payment ID that the consumer PSP uses to connect its internal money-transfer transaction to the P2P payment. The consumer PSP must use this ID in this endpoint call to notify EPI of a status change. This ID is used as the `moneyTransferId` also in the [create a money transfer](ref:put-money-transfers) endpoint call.
+        status:
+          $ref: '#/components/schemas/MoneyTransferStatus'
+      examples:
+        - name: MoneyTransferStatusChanged
+          id: 4ff0cddc-75f2-4d4c-9126-e47134386480
+          resourceId: f2f84a80-2c26-458e-bcfc-f2b5a92228c9
+          status:
+            value: Settled
+            at: '2023-05-03T10:38:30.801643443Z'
+            originatorPspReference: '1234567890'
+    AccountAuthorizedPersonAccessRevokedRequest:
+      title: Account Authorized Person Access Revoked
+      type: object
+      required:
+        - name
+        - id
+        - externalConsumerId
+        - externalPaymentSourceId
+      properties:
+        name:
+          type: string
+          const: AccountAuthorizedPersonAccessRevoked
+        id:
+          type: string
+          format: uuid
+          description: ID of this event for EPI to differentiate it from other events. Can be a random UUID.
+        externalConsumerId:
+          type: string
+          description: The external ID of the consumer.
+        externalPaymentSourceId:
+          type: string
+          description: The external ID of the payment source.
+      examples:
+        - name: AccountAuthorizedPersonAccessRevoked
+          id: 4ff0cddc-75f2-4d4c-9126-e47134386480
+          externalConsumerId: f2f84a80-2c26-458e-bcfc-f2b5a92228c9
+          externalPaymentSourceId: f2f84a80-2c26-458e-bcfc-f2b5a92228c9

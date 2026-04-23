@@ -1,0 +1,947 @@
+openapi: 3.0.0
+info:
+  title: Payment Sources API
+  version: 1.0.0
+  description: API specification for payment-sources resource
+servers:
+- url: https://api.example.com
+paths:
+  /api/payment-sources:
+    servers: []
+    post:
+      tags:
+      - payment-sources
+      operationId: post-payment-sources
+      summary: Create a payment source resource [Consumer PSP]
+      x-slo:
+        availability: 99.95
+        latency:
+          p95: 300
+          p99: 600
+          max: 1800
+        throughput: N/A
+        severity: N/A
+        status: DRAFT
+      description: "Consumer PSPs can use this endpoint call to send information about a consumer's payment source to EPI central services and create a payment source resource.\n## Scope \nThis endpoint\
+        \ call does not require a scope. "
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentSourceRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/PaymentSourceResource'
+        '208':
+          description: Already Reported - The payment source with the given externalId already exists and has not been changed.
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/PaymentSourceResource'
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+        '409':
+          description: 'Conflict
+
+            The submitted payment source does not match the existing payment source, or a constraint is violated.  For example, the IBAN might already be in use, or the account holder might not match. Ensure
+            that the combination of IBAN and externalId remains unique.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                TenantIdAlreadyInUse:
+                  description: The submitted payment source was submitted before and does not match the existing payment source.
+                  value:
+                    type: /problem/payment-source/tenant-id-already-in-use
+                    status: 409
+                    title: Constraint Violation
+                    detail: The provided consumerPspId + externalId combination is already in use.
+                    callId: 00000000000000000000000000000000-0000000000000000
+                IbanAlreadyInUse:
+                  value:
+                    type: /problem/payment-source/iban-already-in-use
+                    status: 409
+                    title: Constraint Violation
+                    detail: The provided IBAN is already in use.
+                    callId: 00000000000000000000000000000000-0000000000000000
+                IbanAliasAlreadyInUse:
+                  value:
+                    type: /problem/payment-source/iban-alias-already-in-use
+                    status: 409
+                    title: Constraint Violation
+                    detail: The provided consumerPspId + IBAN alias combination is already in use.
+                    callId: 00000000000000000000000000000000-0000000000000000
+        '422':
+          description: Unprocessable Entity - The request was well formed but was not followed due to semantic errors.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                PaymentSourceBlocked:
+                  description: This payment source is blocked.
+                  value:
+                    type: about:blank
+                    status: 422
+                    title: Unprocessable Entity
+                    detail: Payment source with ID 00000000-0000-0000-0000-000000000000 is blocked.
+                    callId: 00000000000000000000000000000000-0000000000000000
+                ConsumerPspIsBeingMerged:
+                  value:
+                    type: /problem/consumer-psp/consumer-psp-is-being-merged
+                    status: 422
+                    title: Consumer PSP is being merged
+                    callId: 00000000000000000000000000000000-0000000000000000
+      security:
+      - BearerAccessToken: []
+    get:
+      operationId: get-payment-sources
+      summary: List payment sources [Consumer PSP]
+      description: 'Consumer PSPs can use this endpoint call to retrieve a list of the payment source resources that it created at EPI central services.
+
+        ## Scope
+
+        This endpoint call does not require a scope.'
+      security:
+      - BearerAccessToken: []
+      tags:
+      - payment-sources
+      parameters:
+      - name: id
+        description: The ID of the payment source.
+        in: query
+        required: false
+        explode: true
+        schema:
+          type: string
+          format: uuid
+      - name: externalId
+        description: The external ID of the payment source.
+        in: query
+        required: false
+        explode: true
+        schema:
+          type: string
+      - name: status
+        description: The status of the payment source.  If not specified, the default value is Active.
+        in: query
+        required: false
+        explode: true
+        schema:
+          type: string
+          default: Active
+          enum:
+          - Active
+          - Blocked
+          - Closed
+      - name: page
+        description: The page that is to be retrieved.  If not specified, the default value is `0`.
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: limit
+        description: The maximum number of payment sources to return.  If not specified, the default value is 100.
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 100
+      responses:
+        '200':
+          description: OK
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                type: object
+                required:
+                - _links
+                - _embedded
+                - page
+                properties:
+                  _links:
+                    $ref: '#/components/schemas/PagedCollectionResourceLinks'
+                  _embedded:
+                    type: object
+                    properties:
+                      paymentSources:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PaymentSourceResource'
+                  page:
+                    $ref: '#/components/schemas/page'
+              examples:
+                page:
+                  value:
+                    _links:
+                      self:
+                        href: https://api.epi-services.eu/api/payment-sources?page=0&limit=100
+                      first:
+                        href: https://api.epi-services.eu/api/payment-sources?page=0&limit=100
+                      last:
+                        href: https://api.epi-services.eu/api/payment-sources?page=0&limit=100
+                    _embedded:
+                      paymentSources:
+                      - type: PaymentAccount
+                        id: 00000000-0000-0000-0000-000000000001
+                        status: Active
+                        consumerPspId: 8aff7e82-40c7-4715-ae9b-0be5fb3cb365
+                        externalId: 6ae125d9-13b1-5add-9999-82e1a40cbb39
+                        currency: EUR
+                        accountIdentifier:
+                          type: IBAN
+                          iban: DE57100110012620341753
+                        accountHolder: Lina Cash
+                        pro: false
+                        displayDigits: DE57xxxxxxxxxxxxxx1753
+                        _links:
+                          self:
+                            href: https://api.epi-services.eu/api/payment-sources/00000000-0000-0000-0000-000000000001
+                    page:
+                      size: 1
+                      totalElements: 1
+                      totalPages: 1
+                      number: 0
+                      requestedPageSize: 100
+                      limitReached: false
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+        '403':
+          $ref: '#/components/responses/errorResponse403'
+components:
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type, only in the context of the provided endpoint.
+          default: about:blank
+          example: /some/uri-reference
+          not:
+            enum:
+            - /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          example: some title for the error situation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem, which helps locate the problem and describes how to proceed.
+          example: some description for the error situation
+        instance:
+          type: string
+          format: uri-reference
+          description: A URI reference that identifies the specific occurrence of the problem, for example, by adding a fragment identifier or sub-path to the problem type. Can be used to locate the root
+            of the problem in the source code.
+          example: /some/uri-reference#specific-occurrence-context
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+      required:
+      - type
+      - title
+      - status
+    PaymentSourceStatus:
+      description: The status of the payment source. This enumeration is extensible; additional values might be added.
+      oneOf:
+      - const: Active
+        description: The payment source is active.
+        title: Active
+      - const: Blocked
+        description: The payment source is blocked.
+        title: Blocked
+      - const: Closed
+        description: The payment source is closed.
+        title: Closed
+      - type: string
+        not:
+          enum:
+          - Active
+          - Blocked
+          - Closed
+        description: Placeholder for a future reason, to be defined.
+        title: Any String
+    page:
+      type: object
+      examples:
+      - size: 1
+        totalElements: 1
+        totalPages: 1
+        number: 0
+        requestedPageSize: 10
+        limitReached: false
+      properties:
+        size:
+          type: integer
+          description: The number of elements on the page.
+        totalElements:
+          type: integer
+          description: The total number of elements available with the query.
+        totalPages:
+          type: integer
+          description: The total number of pages available, using the requested page size.
+        number:
+          type: integer
+          description: The number of the current page. Page numbers start at `0` and continue to the total number of pages.
+        requestedPageSize:
+          type: integer
+          description: The requested page size. The value of "size" might differ for the last page if the last page is not full.
+        limitReached:
+          type: boolean
+          description: If `true`, an internal limit when retrieving results was exceeded. Not all elements are returned.
+      description: A paginated resource is a HAL resource. The resource contains the page object, which describes the provided subset of data. The data is provided as an embedded collection resource. The
+        name of the collection depends on the endpoint. HAL links are also provided, for navigation.
+      title: Structure of a paginated response
+      required:
+      - size
+      - totalElements
+      - totalPages
+      - number
+      - requestedPageSize
+      - limitReached
+    PaymentSourceResource:
+      type: object
+      description: ''
+      oneOf:
+      - $ref: '#/components/schemas/PaymentSourceResourcePaymentAccount'
+      discriminator:
+        propertyName: type
+        mapping:
+          PaymentAccount: '#/components/schemas/PaymentSourceResourcePaymentAccount'
+    IBAN:
+      type: string
+    CreatePaymentSourceRequest:
+      type: object
+      oneOf:
+      - $ref: '#/components/schemas/CreatePaymentSourcePaymentAccountRequest'
+      examples:
+      - type: PaymentAccount
+        externalId: '123456789'
+        accountIdentifier:
+          type: IBAN
+          iban: NL02ABNA0123456789
+        accountHolder: John Doe
+        currency: EUR
+        pro: false
+        countryCode: NL
+      - type: PaymentAccount
+        externalId: '123456789'
+        accountIdentifier:
+          type: Alias
+          alias: MyAlias123
+          maskedIban: NL02xxxxxxxxxxxxxx89
+        accountHolder: John Doe
+        currency: EUR
+        pro: false
+        countryCode: NL
+    CountryCode:
+      title: Country code
+      description: A country code in ISO 3166-1 alpha-2 format.
+      type: string
+      pattern: ^[A-Z]{2}$
+      enum:
+      - AF
+      - AX
+      - AL
+      - DZ
+      - AS
+      - AD
+      - AO
+      - AI
+      - AQ
+      - AG
+      - AR
+      - AM
+      - AW
+      - AU
+      - AT
+      - AZ
+      - BS
+      - BH
+      - BD
+      - BB
+      - BY
+      - BE
+      - BZ
+      - BJ
+      - BM
+      - BT
+      - BO
+      - BQ
+      - BA
+      - BW
+      - BV
+      - BR
+      - IO
+      - BN
+      - BG
+      - BF
+      - BI
+      - CV
+      - KH
+      - CM
+      - CA
+      - KY
+      - CF
+      - TD
+      - CL
+      - CN
+      - CX
+      - CC
+      - CO
+      - KM
+      - CG
+      - CD
+      - CK
+      - CR
+      - CI
+      - HR
+      - CU
+      - CW
+      - CY
+      - CZ
+      - DK
+      - DJ
+      - DM
+      - DO
+      - EC
+      - EG
+      - SV
+      - GQ
+      - ER
+      - EE
+      - ET
+      - FK
+      - FO
+      - FJ
+      - FI
+      - FR
+      - GF
+      - PF
+      - TF
+      - GA
+      - GM
+      - GE
+      - DE
+      - GH
+      - GI
+      - GR
+      - GL
+      - GD
+      - GP
+      - GU
+      - GT
+      - GG
+      - GN
+      - GW
+      - GY
+      - HT
+      - HM
+      - VA
+      - HN
+      - HK
+      - HU
+      - IS
+      - IN
+      - ID
+      - IR
+      - IQ
+      - IE
+      - IM
+      - IL
+      - IT
+      - JM
+      - JP
+      - JE
+      - JO
+      - KZ
+      - KE
+      - KI
+      - KP
+      - KR
+      - KW
+      - KG
+      - LA
+      - LV
+      - LB
+      - LS
+      - LR
+      - LY
+      - LI
+      - LT
+      - LU
+      - MO
+      - MK
+      - MG
+      - MW
+      - MY
+      - MV
+      - ML
+      - MT
+      - MH
+      - MQ
+      - MR
+      - MU
+      - YT
+      - MX
+      - FM
+      - MD
+      - MC
+      - MN
+      - ME
+      - MS
+      - MA
+      - MZ
+      - MM
+      - NA
+      - NR
+      - NP
+      - NL
+      - NC
+      - NZ
+      - NI
+      - NE
+      - NG
+      - NU
+      - NF
+      - MP
+      - 'NO'
+      - OM
+      - PK
+      - PW
+      - PS
+      - PA
+      - PG
+      - PY
+      - PE
+      - PH
+      - PN
+      - PL
+      - PT
+      - PR
+      - QA
+      - RE
+      - RO
+      - RU
+      - RW
+      - BL
+      - SH
+      - KN
+      - LC
+      - MF
+      - PM
+      - VC
+      - WS
+      - SM
+      - ST
+      - SA
+      - SN
+      - RS
+      - SC
+      - SL
+      - SG
+      - SX
+      - SK
+      - SI
+      - SB
+      - SO
+      - ZA
+      - GS
+      - SS
+      - ES
+      - LK
+      - SD
+      - SR
+      - SJ
+      - SZ
+      - SE
+      - CH
+      - SY
+      - TW
+      - TJ
+      - TZ
+      - TH
+      - TL
+      - TG
+      - TK
+      - TO
+      - TT
+      - TN
+      - TR
+      - TM
+      - TC
+      - TV
+      - UG
+      - UA
+      - AE
+      - GB
+      - US
+      - UM
+      - UY
+      - UZ
+      - VU
+      - VE
+      - VN
+      - VG
+      - VI
+      - WF
+      - EH
+      - YE
+      - ZM
+      - ZW
+      example: DE
+    AccountIdentifier:
+      description: 'A polymorphic type that identifies an account. The value can be of one of the following types.
+
+        - An IBAN, if the consumer PSP permits EPI to store IBANs. This IBAN must have a valid checksum and a country code from a supported country. For more information, see the [IBAN checker](https://www.iban.com/iban-checker)
+        on the IBAN validation and calculation website.
+
+        - An alias for the IBAN, if the consumer PSP does not permit EPI to store IBANs.
+
+        '
+      type: object
+      oneOf:
+      - $ref: '#/components/schemas/IbanIdentifier'
+      - $ref: '#/components/schemas/AliasIdentifier'
+      discriminator:
+        propertyName: type
+        mapping:
+          IBAN: '#/components/schemas/IbanIdentifier'
+          Alias: '#/components/schemas/AliasIdentifier'
+    PaymentSourceResourcePaymentAccount:
+      type: object
+      required:
+      - type
+      - id
+      - consumerPspId
+      - externalId
+      - currency
+      - status
+      - pro
+      - displayDigits
+      - _links
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Payment source ID.
+        type:
+          type: string
+          enum:
+          - PaymentAccount
+        consumerPspId:
+          type: string
+          format: uuid
+          description: PSP ID of the payment source.
+        externalId:
+          type: string
+          description: External ID of the payment source, provided by the consumer PSP. Uniquely identifies a payment source outside of the EPI context. For EPI to correlate payment sources across different
+            wallet installations, consumer PSPs must provide the same external ID for a particular payment source across wallets.
+        accountHolder:
+          type: string
+          description: Name of the account holder.
+        accountIdentifier:
+          $ref: '#/components/schemas/AccountIdentifier'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        pro:
+          type: boolean
+          description: Indicates whether the payment account is a 'pro' account, for P2Pro payments.
+        status:
+          $ref: '#/components/schemas/PaymentSourceStatus'
+        displayDigits:
+          type: string
+          description: The display digits of the account identifier. This field can be used for end-user display purposes, such as a masked IBAN.
+        countryCode:
+          $ref: '#/components/schemas/CountryCode'
+        _links:
+          type: object
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+      examples:
+      - id: e369792d-ce10-4fb3-afbf-6a9632cb5156
+        type: PaymentAccount
+        consumerPspId: d6de77b0-e129-49ec-ae13-6ccec0c8c692
+        externalId: a4912834-0e8b-41cb-a5ce-992bfa51279f
+        accountHolder: John Doe
+        accountIdentifier:
+          type: IBAN
+          iban: DE89370400440532013000
+        currency: EUR
+        status: Active
+        displayDigits: DE89xxxxxxxxxxxxxx3000
+        countryCode: DE
+        pro: false
+        _links:
+          self:
+            href: https://api.epi-services.eu/api/payment-sources/e369792d-ce10-4fb3-afbf-6a9632cb5156
+    CreatePaymentSourcePaymentAccountRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+          - PaymentAccount
+        externalId:
+          type: string
+          minLength: 1
+          description: External ID of a payment source, provided by the consumer PSP. For example, the IBAN of a payment account. Uniquely identifies a payment source outside of the EPI context. For EPI
+            to correlate payment sources across different wallet installations, consumer PSPs must provide the same external ID for a particular payment source across wallets.
+        accountHolder:
+          minLength: 1
+          type: string
+          description: "Name of the account holder.\n> \u2757\uFE0FThis field is optional but will become required from November 2025 for all markets using the account holder name for Verification of Payee\
+            \ (VoP)"
+        pro:
+          type: boolean
+          description: Indicates whether the payment account is a pro account for P2Pro payments.
+          default: false
+        accountIdentifier:
+          $ref: '#/components/schemas/AccountIdentifier'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        countryCode:
+          $ref: '#/components/schemas/CountryCode'
+          description: "ISO 3166-1 alpha-2 country code of the country where the payment account is located.\n> \u2757\uFE0FThis field is optional but will become required from June 2025."
+      required:
+      - type
+      - externalId
+      - accountIdentifier
+      - currency
+      - pro
+    Currency:
+      type: string
+      description: The three-letter ISO 4217:2015 currency code for the transaction.
+      oneOf:
+      - const: EUR
+        description: EPI's home currency.
+        title: EPI's home currency
+      - type: string
+        not:
+          enum:
+          - EUR
+        description: Any other currency.
+        title: Any other currency
+    PagedCollectionResourceLinks:
+      type: object
+      properties:
+        self:
+          $ref: '#/components/schemas/link'
+        first:
+          $ref: '#/components/schemas/link'
+        last:
+          $ref: '#/components/schemas/link'
+        prev:
+          $ref: '#/components/schemas/link'
+        next:
+          $ref: '#/components/schemas/link'
+      required:
+      - self
+      - first
+      - last
+    AliasIdentifier:
+      title: Alias account identifier
+      type: object
+      required:
+      - type
+      - alias
+      - maskedIban
+      description: The IBAN alias, which identifies the account if the PSP does not permit EPI to store IBANs.
+      properties:
+        type:
+          type: string
+          enum:
+          - Alias
+        alias:
+          type: string
+          description: The IBAN alias for this account.
+          pattern: ^[-a-zA-Z0-9/?:().,'+\s]{8,50}$
+        maskedIban:
+          type: string
+          description: 'The masked IBAN of this account. Since EPI has no information for generating a masked IBAN but needs the masked IBAN for display purposes, the PSP must provide the masked IBAN.
+
+            '
+          minLength: 8
+          maxLength: 34
+          example: DE12********7890
+    IbanIdentifier:
+      title: IBAN account identifier
+      type: object
+      required:
+      - type
+      - iban
+      description: An IBAN, if the consumer PSP permits EPI to store IBANs. This IBAN must have a valid checksum and a country code from a supported country. For more information, see the [IBAN checker](https://www.iban.com/iban-checker)
+        on the IBAN validation and calculation website.
+      properties:
+        type:
+          type: string
+          enum:
+          - IBAN
+        iban:
+          $ref: '#/components/schemas/IBAN'
+    ConstraintViolationProblem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type only in the context of the provided endpoint.
+          const: /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          default: Constraint Violation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          default: 400
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+        violations:
+          type: array
+          description: A list of constraint violations.
+          items:
+            type: object
+            required:
+            - field
+            - message
+            properties:
+              field:
+                type: string
+                description: The name of the field that caused the constraint violation.
+              message:
+                type: string
+                description: A technical message that describes the constraint violation, in English.
+              userMessageKey:
+                type: string
+                description: A key that describes the type of constraint violation, useful to report user input validation error. The key can be used to look up a localised message for instance, that can
+                  then be interpolated using the `userMessageValue`.
+                example: constraint.string.min-length
+                oneOf:
+                - type: string
+                  title: Standard constraint violation key
+                  description: 'All known standard constraint violation keys: * **constraint.required**: The field is required. * **constraint.type**: The field must be of the correct type. * **constraint.enum**:
+                    The field must be one of the allowed values. `userMessageValue` contains the list as a string value. * **constraint.const**: The field must be a specific value. `userMessageValue` contains
+                    the value as a string value. * **constraint.number.multiple-of**: The field must be a multiple of a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-inclusive**:
+                    The field must be less than or equal to a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-exclusive**: The field must be less
+                    than a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.minimum-inclusive**: The field must be greater than or equal to a specific number.
+                    `userMessageValue` contains the number as a string value.            * **constraint.number.minimum-exclusive**: The field must be greater than a specific number. `userMessageValue` contains
+                    the number as a string value. * **constraint.string.max-length**: The field must be at most a specific number of characters long. `userMessageValue` contains the number as a string value.
+                    * **constraint.string.min-length**: The field must be at least a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.min-length-not-blank**:
+                    The field must be at least a specific number of characters long and not blank. `userMessageValue` contains the number as a string value. * **constraint.string.max-graphemes**: The field
+                    must be at most a specific number of graphemes long. `userMessageValue` contains the number as a string value. * **constraint.string.pattern**: The field must match a specific pattern.
+                    * **constraint.string.length**: The field must be a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.url**: The field
+                    must be a valid URL. * **constraint.string.url-https**: The field must be a valid HTTPS URL. * **constraint.string.uuid4**: The field must be a valid UUID v4. * **constraint.string.email**:
+                    The field must be a valid email address. * **constraint.string.phone-number**: The field must be a valid phone number. * **constraint.duration.min-seconds**: The field must be at least
+                    a specific number of seconds long. `userMessageValue` contains the number as a string value. * **constraint.duration.max-days**: The field must be at most a specific number of days long.
+                    `userMessageValue` contains the number as a string value. * **constraint.datetime.before**: The field must be before a specific date and time. `userMessageValue` contains the `datetime`
+                    as a timestamp string value. * **constraint.array.min-items**: The field must contain at least a specific number of items. `userMessageValue` contains the number as a string value. *
+                    **constraint.array.max-items**: The field must contain at most a specific number of items. `userMessageValue` contains the number as a string value. * **constraint.array.unique-items**:
+                    The field must contain only unique items. * **constraint.amount.maximum**: The field must be less than or equal to a specific amount. * **constraint.amount.minimum**: The field must
+                    be greater than or equal to a specific amount. * **constraint.currency-supported**: The field must be a supported currency.'
+                  enum:
+                  - constraint.required
+                  - constraint.type
+                  - constraint.enum
+                  - constraint.const
+                  - constraint.number.multiple-of
+                  - constraint.number.maximum-inclusive
+                  - constraint.number.maximum-exclusive
+                  - constraint.number.minimum-inclusive
+                  - constraint.number.minimum-exclusive
+                  - constraint.string.max-length
+                  - constraint.string.min-length
+                  - constraint.string.min-length-not-blank
+                  - constraint.string.max-graphemes
+                  - constraint.string.pattern
+                  - constraint.string.length
+                  - constraint.string.url
+                  - constraint.string.url-https
+                  - constraint.string.uuid4
+                  - constraint.string.email
+                  - constraint.string.phone-number
+                  - constraint.duration.min-seconds
+                  - constraint.duration.max-days
+                  - constraint.datetime.before
+                  - constraint.array.min-items
+                  - constraint.array.max-items
+                  - constraint.array.unique-items
+                  - constraint.amount.maximum
+                  - constraint.amount.minimum
+                  - constraint.currency-supported
+                - type: string
+                  description: Placeholder for a future user message key.
+                  title: Placeholder for future message keys
+                  not:
+                    enum:
+                    - constraint.required
+                    - constraint.type
+                    - constraint.enum
+                    - constraint.const
+                    - constraint.number.multiple-of
+                    - constraint.number.maximum-inclusive
+                    - constraint.number.maximum-exclusive
+                    - constraint.number.minimum-inclusive
+                    - constraint.number.minimum-exclusive
+                    - constraint.string.max-length
+                    - constraint.string.min-length
+                    - constraint.string.min-length-not-blank
+                    - constraint.string.max-graphemes
+                    - constraint.string.pattern
+                    - constraint.string.length
+                    - constraint.string.url
+                    - constraint.string.url-https
+                    - constraint.string.uuid4
+                    - constraint.string.email
+                    - constraint.string.phone-number
+                    - constraint.duration.min-seconds
+                    - constraint.duration.max-days
+                    - constraint.datetime.before
+                    - constraint.array.min-items
+                    - constraint.array.max-items
+                    - constraint.array.unique-items
+                    - constraint.amount.maximum
+                    - constraint.amount.minimum
+                    - constraint.currency-supported
+              userMessageValue:
+                type: string
+                description: A string value that can be used to replace a placeholder in the localised message.
+      required:
+      - type
+      - title
+      - status
+      - violations
+    link:
+      type: object
+      properties:
+        href:
+          type: string
+          format: uri
+        name:
+          type: string
+      required:
+      - href

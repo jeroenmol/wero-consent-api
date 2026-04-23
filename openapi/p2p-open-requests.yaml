@@ -1,0 +1,661 @@
+openapi: 3.0.0
+info:
+  title: P2P Open Requests API
+  version: 1.0.0
+  description: API specification for p2p-open-requests resource
+servers:
+- url: https://api.example.com
+paths:
+  /api/p2p-open-requests:
+    servers: []
+    post:
+      summary: Create a P2P open request [Consumer PSP or Wallet]
+      x-slo:
+        availability: 99.95
+        latency:
+          p95: 300
+          p99: 600
+          max: 1800
+        throughput: N/A
+        severity: N/A
+        status: DRAFT
+      tags:
+      - p2p-open-requests
+      operationId: post-p2p-open-requests
+      description: "## Person-to-person open requests\nOne consumer (the payee) can request money from one or multiple consumers (the payers) through a person-to-person (P2P) open request. With an open\
+        \ request, a payee can create a request without specifying the amount or the details of the payers. For more information, see [QR codes and links for requesting money without specifying a payer](doc:qr-codes-for-requesting-money-without-specifying-the-payer)\n\
+        \nThe payee creates a P2P open request, including details like the amount and a message. In the standalone Wero digital wallet app, the payer approves the P2P open request, which creates a P2P payment.\
+        \ This P2P payment follows the same workflow as if it were created by the payer without a request from the payee.\n### Create a P2P open request\nWith the following endpoint call, the payee can\
+        \ create the P2P open request. That includes a share URL that the payee can use to share the request with payers, for example, through e-mail or SMS, or as a QRCode. One or more payers can then\
+        \ [decode](ref:post-api-share-url-decode) and approve the open request.\n### Idempotency \nThis request can benefit from clients setting the Idempotency-Key header. For more information, see [Idempotency](ref:idempotency).\n\
+        ### Scope\nThe `p2p:transferMoney` scope is required to access this route."
+      parameters:
+      - $ref: '#/components/parameters/Idempotency-Key'
+      security:
+      - BearerAccessToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: Message that is sent to the payers. Limited to 250 graphemes.
+                title:
+                  type: string
+                  description: Message title sent to the payers. Limited to 3 graphemes.
+                  example: "\U0001F382\U0001F37D\uFE0F\U0001F4B6"
+                paymentReference:
+                  $ref: '#/components/schemas/PaymentReference'
+                amount:
+                  allOf:
+                  - $ref: '#/components/schemas/Money'
+                  - type: object
+                    properties:
+                      euroCents:
+                        type: integer
+                        minimum: 1
+                        maximum: 10000000
+                payeePaymentMeansId:
+                  type: string
+                  description: The means of payment that is used to receive the payment.
+                expiryDuration:
+                  type: string
+                  description: The duration after which the open request expires (ISO-8601). Only hours (H), minutes (M) and seconds (S) are supported. Minimum is 5 minutes, maximum is 62 days.  The payee
+                    or the consumer PSP can define the expiry duration.
+                  example: PT10M
+                  pattern: ^PT[0-9]+[SMH]$
+                isFixedAmount:
+                  type: boolean
+                  description: Indicates whether the amount can be changed by the payer or not.
+                totalExpectedPayments:
+                  type: integer
+                  description: Total number of payments that are expected to be made in order to be able to set the status of the open request to `Paid`. If undefined, there can be unlimited payments and
+                    the open request  stays `Pending` until it expires.
+                  minimum: 1
+                originatingTransactionId:
+                  type: string
+                  format: uuid
+                  description: The ID of an originating transaction that is related to this request. For instance in case of a purchase, the purchase transaction ID can be used here to provide a reference
+                    for this open request.
+                consumerDeviceTelemetry:
+                  $ref: '#/components/schemas/InboundConsumerDeviceTelemetry'
+              required:
+              - payeePaymentMeansId
+              - expiryDuration
+      responses:
+        '201':
+          description: Created
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/P2POpenRequestPayeeSchema'
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+        '409':
+          $ref: '#/components/responses/errorResponse409'
+        '422':
+          $ref: '#/components/responses/errorResponse422'
+    get:
+      summary: List P2P open requests [Wallet]
+      x-slo:
+        availability: 99.95
+        latency:
+          p95: 250
+          p99: 400
+          max: 1200
+        throughput: N/A
+        severity: N/A
+        status: DRAFT
+      tags:
+      - p2p-open-requests
+      operationId: get-p2p-open-requests
+      description: 'Use this endpoint call to retrieve a list of the P2P open requests that are owned by the current consumer.
+
+        ### Scope
+
+        The `p2p:transferMoney` scope is required to access this route.'
+      parameters:
+      - name: page
+        in: query
+        description: The requested page number.
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: size
+        in: query
+        description: The requested page size. The data is split into pages of this size, and the numbering depends on this page size.
+        required: false
+        schema:
+          type: integer
+          minimum: 10
+          maximum: 100
+          default: 10
+      - name: sort
+        in: query
+        description: The sorting order.
+        required: false
+        schema:
+          type: string
+          default: createdAt:desc
+        example: createdAt:desc,status:asc
+      - name: status
+        in: query
+        description: The status of the open request.
+        required: false
+        schema:
+          $ref: '#/components/schemas/P2POpenRequestStatus'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                type: object
+                properties:
+                  _embedded:
+                    type: object
+                    properties:
+                      p2pOpenRequests:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/P2POpenRequestPayeeSchema'
+                    required:
+                    - p2pOpenRequests
+                  _links:
+                    $ref: '#/components/schemas/PagedCollectionResourceLinks'
+                  page:
+                    $ref: '#/components/schemas/page'
+                required:
+                - _embedded
+                - _links
+                - page
+        '403':
+          $ref: '#/components/responses/errorResponse403'
+      security:
+      - BearerAccessToken: []
+components:
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type, only in the context of the provided endpoint.
+          default: about:blank
+          example: /some/uri-reference
+          not:
+            enum:
+            - /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          example: some title for the error situation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem, which helps locate the problem and describes how to proceed.
+          example: some description for the error situation
+        instance:
+          type: string
+          format: uri-reference
+          description: A URI reference that identifies the specific occurrence of the problem, for example, by adding a fragment identifier or sub-path to the problem type. Can be used to locate the root
+            of the problem in the source code.
+          example: /some/uri-reference#specific-occurrence-context
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+      required:
+      - type
+      - title
+      - status
+    P2POpenRequestTitle:
+      type: string
+      description: Text used as message title, limited to 3 graphemes, sent to the payers.
+      example: "\U0001F382\U0001F37D\uFE0F\U0001F4B6"
+    page:
+      type: object
+      examples:
+      - size: 1
+        totalElements: 1
+        totalPages: 1
+        number: 0
+        requestedPageSize: 10
+        limitReached: false
+      properties:
+        size:
+          type: integer
+          description: The number of elements on the page.
+        totalElements:
+          type: integer
+          description: The total number of elements available with the query.
+        totalPages:
+          type: integer
+          description: The total number of pages available, using the requested page size.
+        number:
+          type: integer
+          description: The number of the current page. Page numbers start at `0` and continue to the total number of pages.
+        requestedPageSize:
+          type: integer
+          description: The requested page size. The value of "size" might differ for the last page if the last page is not full.
+        limitReached:
+          type: boolean
+          description: If `true`, an internal limit when retrieving results was exceeded. Not all elements are returned.
+      description: A paginated resource is a HAL resource. The resource contains the page object, which describes the provided subset of data. The data is provided as an embedded collection resource. The
+        name of the collection depends on the endpoint. HAL links are also provided, for navigation.
+      title: Structure of a paginated response
+      required:
+      - size
+      - totalElements
+      - totalPages
+      - number
+      - requestedPageSize
+      - limitReached
+    InboundConsumerDeviceTelemetry:
+      type: object
+      title: Consumer device telemetry
+      description: 'Telemetry data ("device fingerprint") of the device used by the consumer.
+
+
+        EPI cannot guarantee consumer PSPs will send a complete set of consumer device telemetry properties, and therefore they are treated as optional.
+
+
+        It is possible to send additional properties in this object, which EPI will pass on verbatim to EPI''s fraud scoring service provider for evaluation.
+
+
+        This is to allow for easier integration on the consumer PSP side.
+
+
+        However, PSPs are strongly encouraged to provide values for the properties as specified here where possible in order for EPI to provide the best possible fraud scoring.'
+      additionalProperties: true
+      properties:
+        deviceIpAddress:
+          description: The IPv4 or IPv6 address of the consumer's device.
+          type: string
+          example: 192.0.2.123
+        devicePort:
+          description: The ephemeral port of the consumer's device.
+          type: integer
+          example: 52314
+        deviceUserAgent:
+          description: The user agent string of the device used by the consumer. This will often contain information redundantly captured in the `deviceOs` and `deviceModel` properties.
+          type: string
+          maxLength: 256
+          examples:
+          - Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 ...
+          - Mozilla/5.0 (Linux; Android 10; Pixel 3) AppleWebKit/537.36...
+        deviceModel:
+          description: The model of the device used by the consumer.
+          type: string
+          maxLength: 256
+          examples:
+          - iPhone12,1
+          - Pixel 3
+        deviceScreenResolution:
+          description: The screen resolution of the device used by the consumer, in pixels (width x height).
+          type: string
+          examples:
+          - 828x1792
+          - 1080x2280
+        deviceCellularProviders:
+          type: string
+          maxLength: 256
+          description: The cellular provider(s) of the device used by the consumer. This is a comma-separated list of the names of the cellular providers.
+          examples:
+          - Telekom, Vodafone
+          - T-Mobile
+        deviceLocation:
+          description: The location of the device used by the consumer. This is a comma-separated list of the latitude and longitude of the device.
+          type: string
+          example: 37.7749,-122.4194
+        deviceTimeZone:
+          description: The time zone of the device used by the consumer.
+          type: string
+          maxLength: 256
+          example: America/Los_Angeles
+        deviceId:
+          description: 'The unique device identifier of the device used by the consumer. Note: Formats differ (UUID on iOS vs. 64-bit hex string on Android).'
+          type: string
+          maxLength: 256
+          examples:
+          - 6fc1c567-a4cd-45c5-9e44-c5a5b9a6f09a
+          - 2b6f0cc904d137be2e1730235f5664094b831186
+        deviceOs:
+          description: The operating system of the device used by the consumer.
+          type: string
+          examples:
+          - iOS
+          - Android
+        deviceLanguage:
+          description: The language of the device used by the consumer.
+          type: string
+          example: en_US
+        deviceTime:
+          description: The time on the device used by the consumer, in ISO 8601 format.
+          type: string
+          format: date-time
+          example: '2023-09-25T12:34:56Z'
+    link:
+      type: object
+      properties:
+        href:
+          type: string
+          format: uri
+        name:
+          type: string
+      required:
+      - href
+    Money:
+      title: Money
+      type: object
+      properties:
+        euroCents:
+          type: integer
+          description: 'The minimum `euroCents` value is `1`. `euroCents: 100` represents one euro.'
+      description: 'Amounts of money in the API are represented as objects with a single property that describes both the currency (for example, euro) and the unit (which is usually the minor unit of the
+        currency, for example, cents).
+
+
+        Currently, the only supported representation is euroCents, as shown in the example.
+
+
+        Other currencies will be added as needed.'
+      examples:
+      - euroCents: 4900
+    P2POpenRequestStatus:
+      title: P2P open request status type
+      type: string
+      enum:
+      - Pending
+      - Paid
+      - Canceled
+      - Rejected
+      - Expired
+      - Blocked
+      description: "The status of a P2P open request resource can have the following values:\n  - Pending: it has been created and is waiting for approvals. Only when the status is `Pending` can the payer\
+        \ make a payment.\n  - Paid: it has been approved and paid by all payers\n  - Rejected: it has been rejected by all payers\n  - Canceled: it has been canceled by the payee (owner)\n  - Expired:\
+        \ it has expired before being paid\n  - Blocked: it has been blocked and cannot be used anymore"
+    PagedCollectionResourceLinks:
+      type: object
+      properties:
+        self:
+          $ref: '#/components/schemas/link'
+        first:
+          $ref: '#/components/schemas/link'
+        last:
+          $ref: '#/components/schemas/link'
+        prev:
+          $ref: '#/components/schemas/link'
+        next:
+          $ref: '#/components/schemas/link'
+      required:
+      - self
+      - first
+      - last
+    PaymentReference:
+      title: Payment Reference
+      type: string
+      description: 'The reference that is used for the payment. Limited to 140 SEPA characters.
+
+        This will be used within the remittance information of the payment.
+
+        Set this field only in a P2Pro transaction context.'
+      pattern: '[-a-zA-Z0-9/?:().,''+\s]*'
+      maxLength: 140
+    ConstraintViolationProblem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type only in the context of the provided endpoint.
+          const: /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          default: Constraint Violation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          default: 400
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+        violations:
+          type: array
+          description: A list of constraint violations.
+          items:
+            type: object
+            required:
+            - field
+            - message
+            properties:
+              field:
+                type: string
+                description: The name of the field that caused the constraint violation.
+              message:
+                type: string
+                description: A technical message that describes the constraint violation, in English.
+              userMessageKey:
+                type: string
+                description: A key that describes the type of constraint violation, useful to report user input validation error. The key can be used to look up a localised message for instance, that can
+                  then be interpolated using the `userMessageValue`.
+                example: constraint.string.min-length
+                oneOf:
+                - type: string
+                  title: Standard constraint violation key
+                  description: 'All known standard constraint violation keys: * **constraint.required**: The field is required. * **constraint.type**: The field must be of the correct type. * **constraint.enum**:
+                    The field must be one of the allowed values. `userMessageValue` contains the list as a string value. * **constraint.const**: The field must be a specific value. `userMessageValue` contains
+                    the value as a string value. * **constraint.number.multiple-of**: The field must be a multiple of a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-inclusive**:
+                    The field must be less than or equal to a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-exclusive**: The field must be less
+                    than a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.minimum-inclusive**: The field must be greater than or equal to a specific number.
+                    `userMessageValue` contains the number as a string value.            * **constraint.number.minimum-exclusive**: The field must be greater than a specific number. `userMessageValue` contains
+                    the number as a string value. * **constraint.string.max-length**: The field must be at most a specific number of characters long. `userMessageValue` contains the number as a string value.
+                    * **constraint.string.min-length**: The field must be at least a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.min-length-not-blank**:
+                    The field must be at least a specific number of characters long and not blank. `userMessageValue` contains the number as a string value. * **constraint.string.max-graphemes**: The field
+                    must be at most a specific number of graphemes long. `userMessageValue` contains the number as a string value. * **constraint.string.pattern**: The field must match a specific pattern.
+                    * **constraint.string.length**: The field must be a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.url**: The field
+                    must be a valid URL. * **constraint.string.url-https**: The field must be a valid HTTPS URL. * **constraint.string.uuid4**: The field must be a valid UUID v4. * **constraint.string.email**:
+                    The field must be a valid email address. * **constraint.string.phone-number**: The field must be a valid phone number. * **constraint.duration.min-seconds**: The field must be at least
+                    a specific number of seconds long. `userMessageValue` contains the number as a string value. * **constraint.duration.max-days**: The field must be at most a specific number of days long.
+                    `userMessageValue` contains the number as a string value. * **constraint.datetime.before**: The field must be before a specific date and time. `userMessageValue` contains the `datetime`
+                    as a timestamp string value. * **constraint.array.min-items**: The field must contain at least a specific number of items. `userMessageValue` contains the number as a string value. *
+                    **constraint.array.max-items**: The field must contain at most a specific number of items. `userMessageValue` contains the number as a string value. * **constraint.array.unique-items**:
+                    The field must contain only unique items. * **constraint.amount.maximum**: The field must be less than or equal to a specific amount. * **constraint.amount.minimum**: The field must
+                    be greater than or equal to a specific amount. * **constraint.currency-supported**: The field must be a supported currency.'
+                  enum:
+                  - constraint.required
+                  - constraint.type
+                  - constraint.enum
+                  - constraint.const
+                  - constraint.number.multiple-of
+                  - constraint.number.maximum-inclusive
+                  - constraint.number.maximum-exclusive
+                  - constraint.number.minimum-inclusive
+                  - constraint.number.minimum-exclusive
+                  - constraint.string.max-length
+                  - constraint.string.min-length
+                  - constraint.string.min-length-not-blank
+                  - constraint.string.max-graphemes
+                  - constraint.string.pattern
+                  - constraint.string.length
+                  - constraint.string.url
+                  - constraint.string.url-https
+                  - constraint.string.uuid4
+                  - constraint.string.email
+                  - constraint.string.phone-number
+                  - constraint.duration.min-seconds
+                  - constraint.duration.max-days
+                  - constraint.datetime.before
+                  - constraint.array.min-items
+                  - constraint.array.max-items
+                  - constraint.array.unique-items
+                  - constraint.amount.maximum
+                  - constraint.amount.minimum
+                  - constraint.currency-supported
+                - type: string
+                  description: Placeholder for a future user message key.
+                  title: Placeholder for future message keys
+                  not:
+                    enum:
+                    - constraint.required
+                    - constraint.type
+                    - constraint.enum
+                    - constraint.const
+                    - constraint.number.multiple-of
+                    - constraint.number.maximum-inclusive
+                    - constraint.number.maximum-exclusive
+                    - constraint.number.minimum-inclusive
+                    - constraint.number.minimum-exclusive
+                    - constraint.string.max-length
+                    - constraint.string.min-length
+                    - constraint.string.min-length-not-blank
+                    - constraint.string.max-graphemes
+                    - constraint.string.pattern
+                    - constraint.string.length
+                    - constraint.string.url
+                    - constraint.string.url-https
+                    - constraint.string.uuid4
+                    - constraint.string.email
+                    - constraint.string.phone-number
+                    - constraint.duration.min-seconds
+                    - constraint.duration.max-days
+                    - constraint.datetime.before
+                    - constraint.array.min-items
+                    - constraint.array.max-items
+                    - constraint.array.unique-items
+                    - constraint.amount.maximum
+                    - constraint.amount.minimum
+                    - constraint.currency-supported
+              userMessageValue:
+                type: string
+                description: A string value that can be used to replace a placeholder in the localised message.
+      required:
+      - type
+      - title
+      - status
+      - violations
+    P2POpenRequestPayeeSchema:
+      title: P2P Open Request (as payee)
+      type: object
+      description: This is a P2P open request. It is created by the payee and can be approved or rejected by payers.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID of the P2P open request.
+        amount:
+          $ref: '#/components/schemas/Money'
+        message:
+          type: string
+          description: Message that is sent to the payers.
+        title:
+          $ref: '#/components/schemas/P2POpenRequestTitle'
+        paymentReference:
+          $ref: '#/components/schemas/PaymentReference'
+        status:
+          type: object
+          description: Status of the P2P Open request.
+          properties:
+            value:
+              $ref: '#/components/schemas/P2POpenRequestStatus'
+          required:
+          - value
+        createdAt:
+          type: string
+          format: date-time
+          description: Date and time at which the P2P open request was created
+        expiresAt:
+          type: string
+          format: date-time
+          description: Date and time at which the P2P open request expires. The payee defines this value when creating the open request.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Date and time at which the P2P open request's status was last changed
+        payeePaymentMeansId:
+          type: string
+          format: uuid
+          description: The means of payment that is used to receive the payment.
+        payeePaymentSourceId:
+          type: string
+          format: uuid
+          description: The payment source ID of the payee.
+        isFixedAmount:
+          type: boolean
+          description: Indicates whether the amount can be changed by the payer or not.
+        originatingTransactionId:
+          type: string
+          description: The ID of the originating transaction. In the example of a purchase, the purchase transaction ID can be used as the `originatingTransactionId` to provide a reference for an open request.   For
+            example, if a consumer pays for a group meal and then creates an open request for others from that group to pay their part, the `originatingTransactionId` provides the reference for in the open
+            request for the meal.
+        totalExpectedPayments:
+          type: integer
+          description: Total number of payments that are expected to be made.
+        viewsCount:
+          type: integer
+          description: Total number of times the open request share url was decoded, that can be considered as the number of times it's been used.
+        rejectionsCount:
+          type: integer
+          description: Total number of times the open request was rejected by payers.
+        approvalsCount:
+          type: integer
+          description: Total number of times the open request was approved by payers.
+        settlementsCount:
+          type: integer
+          description: Total number of payments that have been settled.
+        shareUrl:
+          type: string
+          description: The share URL that can be used to share the open request with payers.
+          example: https://share.weropay.eu/p/1/r/1234567890
+        _links:
+          type: object
+          description: HAL links to related resources.
+          required:
+          - self
+          - paymentsList
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+            cancellation:
+              $ref: '#/components/schemas/link'
+            paymentsList:
+              $ref: '#/components/schemas/link'
+        _embedded:
+          type: object
+          description: Embedded resources (empty for the payee)
+          properties: {}
+        viewerType:
+          type: string
+          description: The type of the viewer of the P2P open request.
+          const: Payee
+          enum:
+          - Payee
+      required:
+      - id
+      - status
+      - createdAt
+      - expiresAt
+      - payeePaymentMeansId
+      - payeePaymentSourceId
+      - viewsCount
+      - rejectionsCount
+      - approvalsCount
+      - settlementsCount
+      - _links
+      - _embedded
+      - viewerType

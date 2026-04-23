@@ -1,0 +1,699 @@
+openapi: 3.0.0
+info:
+  title: Consumers API
+  version: 1.0.0
+  description: API specification for consumers resource
+servers:
+- url: https://api.example.com
+paths:
+  /api/consumers:
+    servers: []
+    post:
+      operationId: post-consumers
+      summary: Create a consumer [Consumer PSP]
+      x-slo:
+        availability: 99.95
+        latency:
+          p95: 300
+          p99: 600
+          max: 1800
+        throughput: N/A
+        severity: N/A
+        status: DRAFT
+      description: "A consumer entity is a technical entity that EPI central services use internally to compile, associate and manage all assets and information that relate to a consumer. For more information,\
+        \ see [Consumer](doc:consumer-entity-and-profile).\n\nConsumer PSPs can use this endpoint call to create a consumer. \n## Scope\nThis endpoint call requires the `wallet:provisioning` scope. \n##\
+        \ Advanced notice of breaking change Starting in August 2026, the field `shoppingDeviceTelemetry` will be mandatory"
+      tags:
+      - consumers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConsumerRequest'
+            examples:
+              Example 1:
+                value:
+                  externalId: abcd1234
+                  consumerName:
+                    firstName: John
+                    lastName: Doe
+                  dateOfBirth: '1990-01-01'
+              Example 2:
+                value:
+                  externalId: abcd1234
+                  pspObfuscatedConsumerName:
+                    firstName: John
+                    pspObfuscatedLastName: D**
+                  dateOfBirth: '1990-01-01'
+      responses:
+        '201':
+          description: Consumer created
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ConsumerResource'
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+        '409':
+          description: Conflict -  The consumer already exists because the externalId is already in use.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                UniquenessConstraintViolation:
+                  value:
+                    type: /problem/uniqueness-constraint-violation
+                    title: Conflict
+                    status: 409
+                    detail: Constraint must be unique
+                    callId: 00000000000000000000000000000000-0000000000000000
+                ConsumerAlreadyInUseProblem:
+                  value:
+                    type: /problem/consumer/already-in-use
+                    title: Conflict
+                    status: 409
+                    detail: The external identifier is already used by another consumer for the same consumer PSP.
+                    callId: 00000000000000000000000000000000-0000000000000000
+        '422':
+          description: Unprocessable Entity - The request was well formed but was not followed due to semantic errors.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                consumerPspIsBeingMerged:
+                  $ref: '#/components/examples/ConsumerPSPIsBeingMergedProblem'
+      security:
+      - BearerAccessToken: []
+    get:
+      operationId: get-consumers
+      summary: Retrieve a consumer by external ID [Consumer PSP]
+      description: "Consumer PSPs can call this endpoint to retrieve a list that contains information about a consumer through its external ID.\nThis endpoint returns only non-removed consumers and will\
+        \ return an empty list if no consumers or no active consumers are found. \n\n## Scope\nThis endpoint call does not require a scope."
+      tags:
+      - consumers
+      parameters:
+      - name: filterBy
+        in: query
+        description: The property key to filter by.
+        required: true
+        schema:
+          type: string
+          enum:
+          - externalId
+      - name: externalId
+        description: External ID of a consumer, provided by the consumer PSP. Uniquely identifies a consumer outside of the EPI context.
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A collection of consumers.
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ConsumersCollectionResource'
+              examples:
+                consumerFound:
+                  value:
+                    _embedded:
+                      consumers:
+                      - id: string
+                        identifier:
+                          type: External
+                          externalId: string
+                          consumerPspId: a2f88323-e260-4d04-a5e6-a2114d5ff560
+                        status: Active
+                        consumerName:
+                          firstName: string
+                          middleNames: string
+                          lastName: string
+                        pspObfuscatedConsumerName:
+                          firstName: string
+                          pspObfuscatedLastName: string
+                        dateOfBirth: '2019-08-24'
+                        birthCountry: st
+                        nationality: st
+                        residenceCountry: st
+                        residenceCity: string
+                        _links:
+                          self:
+                            href: http://example.com
+                            name: string
+                          paymentSourceProfiles:
+                            href: http://example.com
+                            name: string
+                          contactItems:
+                            href: http://example.com
+                            name: string
+                          pspProfiles:
+                            href: http://example.com
+                            name: string
+                    _links:
+                      self:
+                        href: http://example.com
+                        name: string
+                noConsumerFound:
+                  value:
+                    _embedded:
+                      consumers: []
+                    _links:
+                      self:
+                        href: http://example.com
+                        name: string
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+        '401':
+          $ref: '#/components/responses/errorResponse401'
+components:
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type, only in the context of the provided endpoint.
+          default: about:blank
+          example: /some/uri-reference
+          not:
+            enum:
+            - /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          example: some title for the error situation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem, which helps locate the problem and describes how to proceed.
+          example: some description for the error situation
+        instance:
+          type: string
+          format: uri-reference
+          description: A URI reference that identifies the specific occurrence of the problem, for example, by adding a fragment identifier or sub-path to the problem type. Can be used to locate the root
+            of the problem in the source code.
+          example: /some/uri-reference#specific-occurrence-context
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+      required:
+      - type
+      - title
+      - status
+    ConsumersCollectionResource:
+      type: object
+      required:
+      - _embedded
+      - _links
+      properties:
+        _embedded:
+          type: object
+          required:
+          - consumers
+          properties:
+            consumers:
+              type: array
+              minLength: 0
+              items:
+                $ref: '#/components/schemas/NotRemovedConsumerResource'
+        _links:
+          type: object
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+    CreateConsumerRequest:
+      type: object
+      required:
+      - externalId
+      properties:
+        externalId:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: External ID of a consumer, provided by the consumer PSP. Uniquely identifies a consumer outside of the EPI context. For EPI to correlate consumers across different wallet installations,
+            consumer PSPs must provide the same external ID for a particular consumer across wallets.
+        consumerName:
+          type: object
+          required:
+          - firstName
+          - lastName
+          properties:
+            firstName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The first name of the consumer, as is known to the consumer PSP.
+            middleNames:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The middle names of the consumer, as is known to the consumer PSP.
+            lastName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The last name of the consumer, as is known to the consumer PSP.
+          description: "The full know-your-customer (KYC) name of the consumer, as is known to the consumer PSP.  \n> \u2757\uFE0F Either this object or the `pspObfuscatedConsumerName` is required.\n\n\
+            \ * If the `consumerName` is provided, EPI obfuscates the display name that is shown to other consumers. However, the consumer can override the default setting and set the full `consumerName`\
+            \ as the display name.    \n * If the `consumerName` is not provided, the consumer cannot provision a Wero digital wallet with a means of payment but can receive P2P payments. In that case,\
+            \ the `pspObfuscatedConsumerName` is used as the display name."
+        pspObfuscatedConsumerName:
+          type: object
+          title: PSP-obfuscated consumer name object
+          required:
+          - firstName
+          - pspObfuscatedLastName
+          properties:
+            firstName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The first name of the consumer, as is known to the consumer PSP.
+            pspObfuscatedLastName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: "The know-your-customer (KYC) last name of the consumer that the consumer PSP obfuscates to display only the first character followed by one asterisk for each other character.\
+                \ For example: \n * `D**` instead of `Doe`.\n * `D*****` instead of `Durand`.\nFor information about obfuscation rules, see [Recommended masking rules](doc:obfuscating-consumer-names#recommended-masking-rules)."
+          description: "The know-your-customer (KYC) name of the consumer but with the last name obfuscated by the consumer PSP. When consumer PSPs enrol consumers in the Wero payment system, creating [wallet-less\
+            \ consumers that can receive P2P payments](ref:post-walletless-p2p-receiver), the consumer PSPs might not want to provide the full consumer names to EPI and can use this option to obfuscate\
+            \ the consumer name. For more information, see [Obfuscated names for wallet-less consumers](doc:person-to-person-payments#psp-obfuscated-names-for-wallet-less-consumers).\n> \u2757\uFE0F Either\
+            \ this object or the `consumerName` is required.\n\n\n * If the `consumerName` is provided, the `pspObfuscatedConsumerName` is ignored.\n * If the `consumerName` is not provided, the `pspObfuscatedConsumerName`\
+            \ is used as the display name that is shown to other consumers.\n\n `pspObfuscatedLastName` obfuscates the last name of the consumer only to other consumers. The consumer's full name is visible\
+            \ to the consumer PSP."
+        dateOfBirth:
+          type: string
+          format: date
+          description: The date of birth of the consumer, as is known to the consumer PSP. This information will be used for age verification.
+        birthCountry:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: The country of birth of the consumer, as is known to the consumer PSP. This information will be used for anti-money-laundering checks.
+          example: DE
+        residenceCountry:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: The country of residence of the consumer, as is known to the consumer PSP. This information will be used for anti-money-laundering checks.
+          example: NE
+        residenceCity:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: The city of residence of the consumer, as is known to the consumer PSP. This information will be used for anti-money-laundering checks
+          example: Amsterdam
+        nationality:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: The nationality of the consumer, as is known to the consumer PSP. This information will be used for anti-money-laundering checks.
+          example: FR
+    link:
+      type: object
+      properties:
+        href:
+          type: string
+          format: uri
+        name:
+          type: string
+      required:
+      - href
+    NotRemovedConsumerResource:
+      type: object
+      required:
+      - id
+      - identifier
+      - status
+      - _links
+      properties:
+        id:
+          type: string
+          description: ID of the consumer.
+        identifier:
+          oneOf:
+          - $ref: '#/components/schemas/ConsumerResourceExternalId'
+          - $ref: '#/components/schemas/ConsumerResourcePhoneNumberId'
+          discriminator:
+            propertyName: type
+            mapping:
+              External: '#/components/schemas/ConsumerResourceExternalId'
+              PhoneNumber: '#/components/schemas/ConsumerResourcePhoneNumberId'
+        status:
+          $ref: '#/components/schemas/ConsumerResourceStatus'
+        consumerName:
+          type: object
+          required:
+          - firstName
+          - lastName
+          properties:
+            firstName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The first name of the consumer, as is known to the consumer PSP.
+            middleNames:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The middle names of the consumer, as is known to the consumer PSP.
+            lastName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The last name of the consumer, as is known to the consumer PSP.
+          description: The real name of the consumer, as is known to the consumer PSP.
+        pspObfuscatedConsumerName:
+          type: object
+          required:
+          - firstName
+          - pspObfuscatedLastName
+          properties:
+            firstName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The first name of the consumer, as is known to the consumer PSP.
+            pspObfuscatedLastName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The last name of the consumer, obfuscated by the consumer PSP.
+          description: The know-your-customer (KYC) name of the consumer but obfuscated by the consumer PSP. Present only if the consumer PSP did not provide the consumerName.
+        dateOfBirth:
+          type: string
+          format: date
+        birthCountry:
+          type: string
+          minLength: 2
+          maxLength: 2
+        nationality:
+          type: string
+          minLength: 2
+          maxLength: 2
+        residenceCountry:
+          type: string
+          minLength: 2
+          maxLength: 2
+        residenceCity:
+          type: string
+          minLength: 1
+          maxLength: 255
+        _links:
+          type: object
+          description: HAL links to related resources.
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+            paymentSourceProfiles:
+              $ref: '#/components/schemas/link'
+            contactItems:
+              $ref: '#/components/schemas/link'
+            pspProfiles:
+              $ref: '#/components/schemas/link'
+    ConsumerResourceStatus:
+      title: Consumer status type
+      type: string
+      enum:
+      - Active
+      - Blocked
+      - Removed
+      example: Active
+      description: "The status of a Consumer resource can have the following values:\n\n\n|    Value   |                                      Description                                                \
+        \      |\n|:----------:|:-----------------------------------------------------------------------------------------------------:|\n| `Active`   | The default status when a consumer is created.  \
+        \                                                      |\n| `Blocked`  | The consumer is blocked. No action can be done with that consumer anymore.                            |\n| `Removed`  | \u2757\
+        \uFE0F The consumer is removed. This is an internal state that is used only in EPI central services. Members and consumers cannot retrieve consumers in the `Removed` state. |"
+    ConsumerResourceExternalId:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          description: 'Type of identifier: External or PhoneNumber.'
+          enum:
+          - External
+        externalId:
+          type: string
+          description: Unique ID as provided from the PSP.
+        consumerPspId:
+          type: string
+          format: uuid
+          description: PSP ID of the consumer.
+    ConsumerResource:
+      type: object
+      required:
+      - id
+      - identifier
+      - status
+      - _links
+      properties:
+        id:
+          type: string
+          description: ID of the consumer.
+        identifier:
+          oneOf:
+          - $ref: '#/components/schemas/ConsumerResourceExternalId'
+          - $ref: '#/components/schemas/ConsumerResourcePhoneNumberId'
+          discriminator:
+            propertyName: type
+            mapping:
+              External: '#/components/schemas/ConsumerResourceExternalId'
+              PhoneNumber: '#/components/schemas/ConsumerResourcePhoneNumberId'
+        status:
+          $ref: '#/components/schemas/ConsumerResourceStatus'
+        reasonForRemoval:
+          type: string
+          description: The reason why the consumer was removed. Only present when the consumer is removed.
+          example: ContractTerminated
+        consumerName:
+          type: object
+          required:
+          - firstName
+          - lastName
+          properties:
+            firstName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The first name of the consumer, as is known to the consumer PSP.
+            middleNames:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The middle names of the consumer, as is known to the consumer PSP.
+            lastName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The last name of the consumer, as is known to the consumer PSP.
+          description: The real name of the consumer, as is known to the consumer PSP.
+        pspObfuscatedConsumerName:
+          type: object
+          required:
+          - firstName
+          - pspObfuscatedLastName
+          properties:
+            firstName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The first name of the consumer, as is known to the consumer PSP.
+            pspObfuscatedLastName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The last name of the consumer, obfuscated by the consumer PSP.
+          description: The know-your-customer (KYC) name of the consumer but obfuscated by the consumer PSP. Present only if the consumer PSP did not provide the consumerName.
+        dateOfBirth:
+          type: string
+          format: date
+        birthCountry:
+          type: string
+          minLength: 2
+          maxLength: 2
+        nationality:
+          type: string
+          minLength: 2
+          maxLength: 2
+        residenceCountry:
+          type: string
+          minLength: 2
+          maxLength: 2
+        residenceCity:
+          type: string
+          minLength: 1
+          maxLength: 255
+        _links:
+          type: object
+          description: HAL links to related resources.
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+            paymentSourceProfiles:
+              $ref: '#/components/schemas/link'
+            contactItems:
+              $ref: '#/components/schemas/link'
+            pspProfiles:
+              $ref: '#/components/schemas/link'
+    ConstraintViolationProblem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type only in the context of the provided endpoint.
+          const: /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          default: Constraint Violation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          default: 400
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+        violations:
+          type: array
+          description: A list of constraint violations.
+          items:
+            type: object
+            required:
+            - field
+            - message
+            properties:
+              field:
+                type: string
+                description: The name of the field that caused the constraint violation.
+              message:
+                type: string
+                description: A technical message that describes the constraint violation, in English.
+              userMessageKey:
+                type: string
+                description: A key that describes the type of constraint violation, useful to report user input validation error. The key can be used to look up a localised message for instance, that can
+                  then be interpolated using the `userMessageValue`.
+                example: constraint.string.min-length
+                oneOf:
+                - type: string
+                  title: Standard constraint violation key
+                  description: 'All known standard constraint violation keys: * **constraint.required**: The field is required. * **constraint.type**: The field must be of the correct type. * **constraint.enum**:
+                    The field must be one of the allowed values. `userMessageValue` contains the list as a string value. * **constraint.const**: The field must be a specific value. `userMessageValue` contains
+                    the value as a string value. * **constraint.number.multiple-of**: The field must be a multiple of a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-inclusive**:
+                    The field must be less than or equal to a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-exclusive**: The field must be less
+                    than a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.minimum-inclusive**: The field must be greater than or equal to a specific number.
+                    `userMessageValue` contains the number as a string value.            * **constraint.number.minimum-exclusive**: The field must be greater than a specific number. `userMessageValue` contains
+                    the number as a string value. * **constraint.string.max-length**: The field must be at most a specific number of characters long. `userMessageValue` contains the number as a string value.
+                    * **constraint.string.min-length**: The field must be at least a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.min-length-not-blank**:
+                    The field must be at least a specific number of characters long and not blank. `userMessageValue` contains the number as a string value. * **constraint.string.max-graphemes**: The field
+                    must be at most a specific number of graphemes long. `userMessageValue` contains the number as a string value. * **constraint.string.pattern**: The field must match a specific pattern.
+                    * **constraint.string.length**: The field must be a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.url**: The field
+                    must be a valid URL. * **constraint.string.url-https**: The field must be a valid HTTPS URL. * **constraint.string.uuid4**: The field must be a valid UUID v4. * **constraint.string.email**:
+                    The field must be a valid email address. * **constraint.string.phone-number**: The field must be a valid phone number. * **constraint.duration.min-seconds**: The field must be at least
+                    a specific number of seconds long. `userMessageValue` contains the number as a string value. * **constraint.duration.max-days**: The field must be at most a specific number of days long.
+                    `userMessageValue` contains the number as a string value. * **constraint.datetime.before**: The field must be before a specific date and time. `userMessageValue` contains the `datetime`
+                    as a timestamp string value. * **constraint.array.min-items**: The field must contain at least a specific number of items. `userMessageValue` contains the number as a string value. *
+                    **constraint.array.max-items**: The field must contain at most a specific number of items. `userMessageValue` contains the number as a string value. * **constraint.array.unique-items**:
+                    The field must contain only unique items. * **constraint.amount.maximum**: The field must be less than or equal to a specific amount. * **constraint.amount.minimum**: The field must
+                    be greater than or equal to a specific amount. * **constraint.currency-supported**: The field must be a supported currency.'
+                  enum:
+                  - constraint.required
+                  - constraint.type
+                  - constraint.enum
+                  - constraint.const
+                  - constraint.number.multiple-of
+                  - constraint.number.maximum-inclusive
+                  - constraint.number.maximum-exclusive
+                  - constraint.number.minimum-inclusive
+                  - constraint.number.minimum-exclusive
+                  - constraint.string.max-length
+                  - constraint.string.min-length
+                  - constraint.string.min-length-not-blank
+                  - constraint.string.max-graphemes
+                  - constraint.string.pattern
+                  - constraint.string.length
+                  - constraint.string.url
+                  - constraint.string.url-https
+                  - constraint.string.uuid4
+                  - constraint.string.email
+                  - constraint.string.phone-number
+                  - constraint.duration.min-seconds
+                  - constraint.duration.max-days
+                  - constraint.datetime.before
+                  - constraint.array.min-items
+                  - constraint.array.max-items
+                  - constraint.array.unique-items
+                  - constraint.amount.maximum
+                  - constraint.amount.minimum
+                  - constraint.currency-supported
+                - type: string
+                  description: Placeholder for a future user message key.
+                  title: Placeholder for future message keys
+                  not:
+                    enum:
+                    - constraint.required
+                    - constraint.type
+                    - constraint.enum
+                    - constraint.const
+                    - constraint.number.multiple-of
+                    - constraint.number.maximum-inclusive
+                    - constraint.number.maximum-exclusive
+                    - constraint.number.minimum-inclusive
+                    - constraint.number.minimum-exclusive
+                    - constraint.string.max-length
+                    - constraint.string.min-length
+                    - constraint.string.min-length-not-blank
+                    - constraint.string.max-graphemes
+                    - constraint.string.pattern
+                    - constraint.string.length
+                    - constraint.string.url
+                    - constraint.string.url-https
+                    - constraint.string.uuid4
+                    - constraint.string.email
+                    - constraint.string.phone-number
+                    - constraint.duration.min-seconds
+                    - constraint.duration.max-days
+                    - constraint.datetime.before
+                    - constraint.array.min-items
+                    - constraint.array.max-items
+                    - constraint.array.unique-items
+                    - constraint.amount.maximum
+                    - constraint.amount.minimum
+                    - constraint.currency-supported
+              userMessageValue:
+                type: string
+                description: A string value that can be used to replace a placeholder in the localised message.
+      required:
+      - type
+      - title
+      - status
+      - violations
+    ConsumerResourcePhoneNumberId:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          description: 'Type of identifier: External or PhoneNumber.'
+          enum:
+          - PhoneNumber
+        phoneNumber:
+          type: string
+          description: Phone number in E.164 format.

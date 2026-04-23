@@ -1,0 +1,2172 @@
+openapi: 3.0.0
+info:
+  title: Consents API
+  version: 1.0.0
+  description: API specification for consents resource
+servers:
+- url: https://api.example.com
+paths:
+  /api/consents:
+    servers: []
+    post:
+      summary: Request consent of a consumer [Acceptor PSP]
+      description: "\n## Payment consent\nIn the Wero payment consent model, a consumer PSP authorises payments from a consumer's account only if it has proof that the consumer consented to the payments.\
+        \ The consumer consents to a payment plan proposed by the acceptor, thereby granting the acceptor the right to request one or more payments from the consumer PSP in accordance with conditions defined\
+        \ in the payment plan.\nConsent to payment plans enables the implementation of recurring payments, such as subscription payments. The concept of payment plans is also leveraged for single, immediate\
+        \ payments, such as for the purchase of an item in a web shop.\n\nFor more information, see [Overview of the Wero payment consent model](doc:consent-model-concept).\n## Requesting consent\nThe acceptor\
+        \ PSP calls this endpoint to request a consumer to consent to a payment plan. Technically, the acceptor PSP creates a consent resource at EPI central services. The acceptor PSP must provide all\
+        \ relevant data for example, the payment plan, acceptor name, and acceptor ID. EPI central services then uses the consent resource to ask the consumer to consent to the payment plan.\n**\u26A0\uFE0F\
+        \ Advance notice of breaking change**. The fields `id`, `name`, `mcc` and `countryCode` located inside `acceptor`, fields `id` and `name` located inside `shop`, field `format` located inside `printOptions`,\
+        \ field `orderPageUrl` located inside `details` and fields `orderReferenceId`, `returnUrl` and `callbackUrl` located in the request payload will be subject to a hard limit of specified `maxLength`\
+        \ characters starting 16 July 2026.\n\n## Scope \nThis endpoint call requires the `consent:request` scope. When requesting a C2C consent, the `consent:c2cRequest` scope is required."
+      x-slo:
+        availability: 99.95
+        latency:
+          p95: 300
+          p99: 600
+          max: 1800
+        throughput: N/A
+        severity: SEV 1
+        status: DRAFT
+      operationId: requestConsent
+      security:
+      - BearerAccessToken: []
+      tags:
+      - consents
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/requestNewConsentRequest'
+            examples:
+              Single immediate payment:
+                value:
+                  paymentPlan:
+                    type: SingleImmediate
+                    amount:
+                      euroCents: 1999
+                  orderReferenceId: '2206600275931757'
+                  acceptor:
+                    id: '12345672'
+                    name: ABC Company
+                    mcc: '1234'
+                    countryCode: BE
+                    shop:
+                      id: '12345672'
+                      name: The cool shop
+                  consumerIdentifier:
+                    walletId: 00000000-0000-0000-0000-000000000000
+                  callbackUrl: https://api.shopping.com/updates
+                  printOptions:
+                    lifetime: 120960
+                    format: printLink
+                  details:
+                    description: Your purchase at The Cool Shop
+                    orderPageUrl: https://shopping.com/order?orderId=45029ac2-b22a-4121-b7d7-e90ae0e307f3
+                    gift: false
+                    billingAddress:
+                      recipientName: John Doe
+                      line1: 1 Main Street
+                      line2: Apt 2
+                      city: Brussels
+                      postalCode: '1000'
+                      state: Brussels
+                      countryCode: BE
+                    shippingCosts:
+                      euroCents: 1990
+                    basketItems:
+                    - sku: ABC-12345-M-SL
+                      name: product name 1
+                      description: product description 1
+                      quantity: 2
+                      unitPrice:
+                        euroCents: 4990
+                      tax:
+                        euroCents: 499
+                    - sku: ABC-12345-S-DK
+                      name: product name 2
+                      description: product description 2
+                      quantity: 2
+                      unitPrice:
+                        euroCents: 8990
+                      tax:
+                        euroCents: 899
+              C2C payment:
+                value:
+                  paymentPlan:
+                    type: C2c
+                    amount:
+                      euroCents: 1999
+                    ultimateBeneficiaryName: John Doe
+                    ultimateBeneficiaryIban: NL71096123456769
+                  orderReferenceId: '2206600275931757'
+                  acceptor:
+                    id: '12345672'
+                    name: Tikkie
+                    mcc: '1234'
+                    countryCode: BE
+                    shop:
+                      id: '12345672'
+                      name: Tikkie
+                  consumerIdentifier:
+                    walletId: 00000000-0000-0000-0000-000000000000
+                  callbackUrl: https://api.tikkie.com/updates
+      responses:
+        '201':
+          description: Created
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/consentResource'
+              examples:
+                Single immediate payment:
+                  value:
+                    id: 5f7c8ca7-581a-43cb-ba27-08409c1cfb4b
+                    acceptor:
+                      id: '12345672'
+                      name: ABC Company
+                      pspId: 00000000-0000-0000-0000-000000007000
+                      mcc: '1234'
+                      countryCode: BE
+                      shop:
+                        id: '12345672'
+                        name: The cool shop
+                    consumerIdentifier:
+                      walletId: 00000000-0000-0000-0000-000000000000
+                    orderReferenceId: '2206600275931757'
+                    status:
+                      value: Requested
+                      at: '2021-03-22T13:00:00.000Z'
+                      timesOutAt: '2021-03-22T13:10:00.000Z'
+                    _links:
+                      self:
+                        href: https://checked.local.epi.rocks/api/consents/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b
+                      paymentPlan:
+                        href: https://checked.local.epi.rocks/api/consents/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b/payment-plan
+                      details:
+                        href: https://checked.local.epi.rocks/api/consents/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b/details
+                      landingPage:
+                        href: https://pay.local.epi.rocks/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b
+                    _embedded:
+                      paymentPlan:
+                        type: SingleImmediate
+                        amount:
+                          euroCents: 1999
+                        _links:
+                          self:
+                            href: https://checked.local.epi.rocks/api/consents/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b/payment-plan
+                      details:
+                        description: Your purchase at The cool shop
+                        billingAddress:
+                          recipientName: John Doe
+                          line1: 1 Main Street
+                          line2: Apt 2
+                          city: Brussels
+                          postalCode: '1000'
+                          state: Brussels
+                          countryCode: BE
+                        shippingCosts:
+                          euroCents: 1990
+                        _links:
+                          self:
+                            href: https://checked.local.epi.rocks/api/consents/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b/details
+                          orderPage:
+                            href: https://shopping.com/order?orderId=45029ac2-b22a-4121-b7d7-e90ae0e307f3
+                    meta:
+                      createdAt: '2023-10-19T11:12:15.310Z'
+                C2C payment:
+                  value:
+                    id: 5f7c8ca7-581a-43cb-ba27-08409c1cfb4b
+                    acceptor:
+                      id: '12345672'
+                      name: Tikkie
+                      pspId: 00000000-0000-0000-0000-000000007000
+                      mcc: '1234'
+                      countryCode: NL
+                      shop:
+                        id: '12345672'
+                        name: Tikkie
+                    orderReferenceId: '2206600275931757'
+                    status:
+                      value: Requested
+                      at: '2021-03-22T13:00:00.000Z'
+                      timesOutAt: '2021-03-22T13:10:00.000Z'
+                    _links:
+                      self:
+                        href: https://checked.local.epi.rocks/api/consents/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b
+                      paymentPlan:
+                        href: https://checked.local.epi.rocks/api/consents/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b/payment-plan
+                      details:
+                        href: https://checked.local.epi.rocks/api/consents/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b/details
+                      landingPage:
+                        href: https://pay.local.epi.rocks/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b
+                    _embedded:
+                      paymentPlan:
+                        type: C2c
+                        amount:
+                          euroCents: 1999
+                        ultimateBeneficiaryName: John Doe
+                        ultimateBeneficiaryIban: NL71096123456769
+                        commercial: false
+                        _links:
+                          self:
+                            href: https://checked.local.epi.rocks/api/consents/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b/payment-plan
+                    meta:
+                      createdAt: '2023-10-19T11:12:15.310Z'
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+        '401':
+          $ref: '#/components/responses/errorResponse401'
+        '403':
+          $ref: '#/components/responses/errorResponse403'
+        '500':
+          $ref: '#/components/responses/errorResponse500'
+        '502':
+          $ref: '#/components/responses/errorResponse502'
+        '503':
+          $ref: '#/components/responses/errorResponse503'
+    get:
+      summary: List consent resources [Wallet or Acceptor PSP]
+      description: "\n## Consent resources\nThe consent resource collates information about the consent and status of the consent request. It also includes various sub-resources. For more information, see\
+        \ [Consent-related resources](doc:consent-model-technical-description#consent-related-resources).\nIf an acceptor PSP has called the endpoint to [request consent of a consumer](ref:requestconsent),\
+        \ EPI central services will have a consent resource.\nConsent can be retrieved only by the same consumer who has been granted the consent.\n## Retrieving consent resources\nA wallet can call this\
+        \ endpoint to:\n  - Retrieve a consent resource by its short ID. \n  - Retrieve consent resources by their payment means ID in descending order of their creation date.\n\nRetrieving consent resources\
+        \ by payment means ID is not for production-level usage.\nAn acceptor PSP can call this endpoint to:\n  - Retrieve a consent resource by the order reference ID.\n\nThe results are limited to 1000\
+        \ entries and are paginated, with a minimum page size of 10. For more information, see [Pagination](ref:pagination).\n## Filtering options [Wallet]\nTo retrieve a consent resource by its short ID,\
+        \ specify the following options: \n  - `findBy=shortId`\n  - `shortId={shortId}`\n\nA consent can be retrieved by its `shortId` only while its status is `Requested`.  A consent with a `Granted`,\
+        \ `Denied`, `Timed-out`, or `Revoked` status cannot be retrieved by its `shortId`.  In these cases, an empty list is returned. \n\nThe `shortId` is only visible from the consumer side (not the acceptor\
+        \ side).   The `shortId` is visible to the consumer only while the consent request is in the `Requested` status.\n\n**Note:** Retrieving a consent by its `shortId` is not part of the MVP scope.\n\
+        ## Wero short code information \nThe `shortId` is also known as the Wero short code. The `shortId` contains 10 alphanumerical characters.  The alphabetical characters are all capital letters. The\
+        \ `shortId` does not contain hyphens, but the Wero digital wallet displays the `shortId` with hyphens to aid readability. \nTo retrieve consent resources by their payment means ID in descending\
+        \ order of their creation date, specify the following options:\t\n  - `findBy=paymentMeansId` \n  - `paymentMeansId={paymentMeansId}`\n\nFiltering by `paymentMeansId` is not suitable for production.\n\
+        To retrieve the consent resources for all the consumer IDs of the wallet, specify only the following option: \n   - `findBy=consumerId`\n\n> This filter option returns only the consents that have\
+        \ the payment plan type `Subscription` and `Consumer Present Future Payment`\n## Filtering options [Acceptor PSP]\nTo retrieve a consent resource by the order reference ID, specify the following\
+        \ options: \n  - `findBy=orderReferenceId` \n  - `orderReferenceId={orderReferenceId}`\n\n## Response\nThe endpoint returns a collection resource with, possibly, a single result, or an empty collection\
+        \ resource if nothing is found.\n## Scope \nThis endpoint call does not require a scope."
+      parameters:
+      - in: query
+        name: findBy
+        description: The field to search by. This field is required if the endpoint is accessed by the [wallet]. It is optional if accessed by the [acceptor PSP].
+        schema:
+          type: string
+          enum:
+          - orderReferenceId
+          - shortId
+          - paymentMeansId
+          - consumerId
+          - paymentPlan
+      - in: query
+        name: orderReferenceId
+        description: The acceptor's order reference ID. The ID that the acceptor identifies the order with.
+        schema:
+          type: string
+      - in: query
+        name: shortId
+        description: The short ID of the consent resource. This is also known as the Wero short code. This ID contains 10 alphanumerical characters. The alphabetical characters are all capital letters.
+          The consumer can enter this ID if, for example, they cannot scan the QR code. Although the short ID contains no hyphens, it is displayed with hyphens to aid readability in the Wero digital wallet.
+        schema:
+          type: string
+      - in: query
+        name: paymentMeansId
+        description: The ID of the means of payment that the consumer used to consent to the payment plan.
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: paymentPlan
+        description: If provided, only consents that have the specified payment plan type are returned.
+        schema:
+          type: string
+          enum:
+          - C2c
+          - EventDependent
+          - SingleImmediate
+          - Subscription
+          - ConsumerPresentFuturePayment
+      tags:
+      - consents
+      x-slo:
+        availability: 99.95
+        latency:
+          p95: 250
+          p99: 400
+          max: 1200
+        throughput: N/A
+        severity: SEV 1
+        status: DRAFT
+      operationId: get-consents
+      security:
+      - BearerAccessToken: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/consentCollectionResource'
+                - $ref: '#/components/schemas/consentPagedCollectionResource'
+              examples:
+                Find a consent resource with the order reference ID 2206600275931757:
+                  value:
+                    _embedded:
+                      consents:
+                      - id: 5f7c8ca7-581a-43cb-ba27-08409c1cfb4b
+                        acceptor:
+                          id: '12345672'
+                          name: ABC Company
+                          pspId: 00000000-0000-0000-0000-000000007000
+                          mcc: '1234'
+                          countryCode: BE
+                          shop:
+                            id: '12345672'
+                            name: The cool shop
+                        consumerIdentifier:
+                          walletId: 00000000-0000-0000-0000-000000000000
+                        orderReferenceId: '2206600275931757'
+                        status:
+                          value: Requested
+                          at: '2021-03-22T13:00:00.000Z'
+                          timesOutAt: '2021-03-22T13:10:00.000Z'
+                        _links:
+                          self:
+                            href: https://checked.local.epi.rocks/api/consents/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b
+                          paymentPlan:
+                            href: https://checked.local.epi.rocks/api/consents/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b/payment-plan
+                          details:
+                            href: https://checked.local.epi.rocks/api/consents/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b/details
+                          landingPage:
+                            href: https://pay.local.epi.rocks/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b
+                        _embedded:
+                          paymentPlan:
+                            type: SingleImmediate
+                            amount:
+                              euroCents: 1999
+                            _links:
+                              self:
+                                href: https://checked.local.epi.rocks/api/consents/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b/payment-plan
+                          details:
+                            description: Your purchase at The cool shop
+                            billingAddress:
+                              recipientName: John Doe
+                              line1: 1 Main Street
+                              line2: Apt 2
+                              city: Brussels
+                              postalCode: '1000'
+                              state: Brussels
+                              countryCode: BE
+                            shippingCosts:
+                              euroCents: 1990
+                            _links:
+                              self:
+                                href: https://checked.local.epi.rocks/api/consents/5f7c8ca7-581a-43cb-ba27-08409c1cfb4b/details
+                              orderPage:
+                                href: https://shopping.com/order?orderId=45029ac2-b22a-4121-b7d7-e90ae0e307f3
+                        meta:
+                          createdAt: '2023-10-19T11:12:15.310Z'
+                    _links:
+                      self:
+                        href: https://checked.local.epi.rocks/api/consents?findBy=orderReferenceId&orderReferenceId=2206600275931757
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+        '401':
+          $ref: '#/components/responses/errorResponse401'
+        '403':
+          $ref: '#/components/responses/errorResponse403'
+        '500':
+          $ref: '#/components/responses/errorResponse500'
+        '502':
+          $ref: '#/components/responses/errorResponse502'
+        '503':
+          $ref: '#/components/responses/errorResponse503'
+components:
+  schemas:
+    consentMeansOfPaymentResource:
+      type: object
+      description: Metadata for the means of payment chosen by the consumer when granting the consent. **Note:** This is only provided in the case of a CPFP payment plan (Consumer Present Future Payment).
+      properties:
+        consumerPspLogoUrl:
+          type: string
+          description: 'The url to the logo of the consumer PSP that manages this means of payment.
+
+            The logo is available without authentication via EPI''s CDN, and may be cached.'
+        maskedIban:
+          type: string
+          description: The masked IBAN for this account (as provided by the consumer PSP).
+    paymentPlanResource:
+      type: object
+      description: The Payment Plan resource.
+      oneOf:
+      - $ref: '#/components/schemas/singleImmediatePaymentResource'
+      - $ref: '#/components/schemas/c2cPaymentResource'
+      - $ref: '#/components/schemas/eventDependentPaymentResource'
+      - $ref: '#/components/schemas/subscriptionPaymentResource'
+      - $ref: '#/components/schemas/consumerPresentFuturePaymentResource'
+      discriminator:
+        propertyName: type
+        mapping:
+          SingleImmediate: '#/components/schemas/singleImmediatePaymentResource'
+          C2c: '#/components/schemas/c2cPaymentResource'
+          EventDependent: '#/components/schemas/eventDependentPaymentResource'
+          Subscription: '#/components/schemas/subscriptionPaymentResource'
+          ConsumerPresentFuturePayment: '#/components/schemas/consumerPresentFuturePaymentResource'
+    anonymousPaymentPlanResource:
+      type: object
+      description: "An anonymised representation of the payment plan that is shown to consumers before they log in with their WERO wallet so that they can recognise and continue the payment process.\n>\
+        \ **\u26A0\uFE0F Advance notice of breaking change**. This field is deprecated and will be removed on 2027-01-11."
+      deprecated: true
+      oneOf:
+      - $ref: '#/components/schemas/anonymousSingleImmediatePaymentResource'
+      - $ref: '#/components/schemas/anonymousC2cPaymentResource'
+      - $ref: '#/components/schemas/anonymousEventDependentPaymentResource'
+      - $ref: '#/components/schemas/anonymousSubscriptionPaymentResource'
+      - $ref: '#/components/schemas/anonymousConsumerPresentFuturePaymentResource'
+      discriminator:
+        propertyName: type
+        mapping:
+          SingleImmediate: '#/components/schemas/anonymousSingleImmediatePaymentResource'
+          C2c: '#/components/schemas/anonymousC2cPaymentResource'
+          EventDependent: '#/components/schemas/anonymousEventDependentPaymentResource'
+          Subscription: '#/components/schemas/anonymousSubscriptionPaymentResource'
+          ConsumerPresentFuturePayment: '#/components/schemas/anonymousConsumerPresentFuturePaymentResource'
+    businessRules:
+      description: "Acceptor PSPs can set this to indicate specificities for this consent.\nFor now the only use-case is RSM (Rail Selection Mechanism) transactions for the Dutch market. \n"
+      type: object
+      properties:
+        dutchMigration:
+          description: 'Acceptor PSPs must set this field with the routing advice ID to indicate this consent was created through RSM.
+
+            '
+          type: object
+          properties:
+            routingAdviceId:
+              description: 'The routing advice ID.
+
+                '
+              type: string
+              format: uuid
+          required:
+          - routingAdviceId
+    CaptureTrigger:
+      type: string
+      description: The trigger for capturing the payment.
+      enum:
+      - Shipping
+      - Delivery
+      - Availability
+      - ServiceFulfilment
+      - Other
+    priceChangeHistoryItem:
+      type: object
+      required:
+      - price
+      - updatedAt
+      properties:
+        price:
+          $ref: '#/components/schemas/Money'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Date and time when the price was last updated.
+          example: '2025-01-01T12:00:00.000Z'
+    easyCheckout:
+      description: "Acceptor PSPs can set this field to request an easy-checkout.\nIf an easy-checkout is requested, consumers must provide the billing and the shipping address when accepting the consent.\
+        \ Acceptor PSPs may additionally request the consumer's phone number and the consumer's email.\n>\u2757\uFE0F Currently, the easy-checkout feature is available only for the Dutch market. > **\u26A0\
+        \uFE0F Advance notice of breaking change**. Easy checkout profiles are deprecated and will be removed on 2026-09-02.\n"
+      type: object
+      properties:
+        includePhone:
+          description: 'Acceptor PSPs must set this field to `true` if they expect the consumer''s phone number to be provided.
+
+            '
+          type: boolean
+        includeEmail:
+          description: 'Acceptor PSPs must set this field to `true` if they expect the consumer''s email address to be provided.
+
+            '
+          type: boolean
+      required:
+      - includePhone
+      - includeEmail
+    consentPaymentRulesResource:
+      type: object
+      description: The payment plan is converted into payment rules, which are a parameterised version of the payment plan details. The payment plan is more readable than the payment rules. The payment
+        rules describe one or more payments that consumers consent to.
+      properties:
+        paymentRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/consentPaymentRuleResourceItem'
+        _links:
+          type: object
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+      required:
+      - paymentRules
+      - _links
+      title: Payment rules
+    consentPagedCollectionResource:
+      type: object
+      title: Paged Collection Resource
+      required:
+      - _embedded
+      - _links
+      - page
+      properties:
+        _embedded:
+          type: object
+          required:
+          - consents
+          properties:
+            consents:
+              type: array
+              items:
+                $ref: '#/components/schemas/consentResource'
+        _links:
+          type: object
+          required:
+          - self
+          - first
+          - last
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+              description: Link to the current page of consent resources. This link is always present.
+            first:
+              $ref: '#/components/schemas/link'
+              description: Link to the first page of consent resources.
+            prev:
+              $ref: '#/components/schemas/link'
+              description: Link to the previous page of consent resources. If there is no previous page, this link is not present.
+            next:
+              description: Link to the next page of consent resources. If there is no next page, this link is not present.
+              $ref: '#/components/schemas/link'
+            last:
+              $ref: '#/components/schemas/link'
+              description: Link to the last page of consent resources.
+        page:
+          $ref: '#/components/schemas/page'
+    anonymousSubscriptionPaymentResource:
+      title: Subscription payment
+      description: A subscription-based payment plan, containing the type and the amount.
+      type: object
+      properties:
+        type:
+          type: string
+          const: Subscription
+        amount:
+          $ref: '#/components/schemas/Money'
+      required:
+      - type
+      - amount
+    consentPaymentRuleResourceItemSliding:
+      type: object
+      description: Payment rule that defines a _sliding_ period during which the given constraints must be satisfied.
+      properties:
+        type:
+          type: string
+          description: 'Type of the payment rules: fixed, cyclic or sliding.'
+          enum:
+          - Sliding
+        constraint:
+          $ref: '#/components/schemas/consentPaymentRuleResourceItemConstraint'
+        duration:
+          type: string
+          example: PT45M
+          description: 'Duration (compliant with ISO 8601) of the window during which the payment constraint must be valid.  '
+      required:
+      - type
+      - constraint
+      - duration
+    MerchantCategoryCode:
+      type: string
+      maxLength: 4
+      minLength: 4
+      pattern: ^\d{4}$
+      description: ISO 18245:2023 defines a merchant category code (MCC) as "a code used to classify the business entity by type of activity in which it is engaged, to facilitate the evaluation of various
+        risks undertaken by the entity and to better identify its transaction patterns and characteristics." The MCC is a four-digit number that is assigned to a business by credit card companies (for example,
+        MasterCard or VISA) when the business first starts to accept one of these cards as a form of payment.
+      example: '5812'
+    consentBasketItem:
+      type: object
+      required:
+      - quantity
+      - unitPrice
+      properties:
+        sku:
+          type: string
+          description: The stock keeping unit (SKU) of the item.
+          minLength: 1
+          maxLength: 128
+        name:
+          type: string
+          description: The name of the item.
+          minLength: 1
+          maxLength: 128
+        description:
+          type: string
+          description: The description of the item.
+          minLength: 1
+          maxLength: 128
+        quantity:
+          type: number
+          description: The quantity of the item.
+          minimum: 1
+        unitPrice:
+          $ref: '#/components/schemas/Money'
+        tax:
+          $ref: '#/components/schemas/Money'
+    requestedSingleImmediatePayment:
+      title: Single, immediate payment
+      description: A single, immediate payment, containing the payment type and amount.
+      type: object
+      properties:
+        type:
+          type: string
+          const: SingleImmediate
+        amount:
+          $ref: '#/components/schemas/Money'
+      required:
+      - type
+      - amount
+    consentPaymentRuleResourceItemCyclic:
+      type: object
+      properties:
+        type:
+          type: string
+          description: 'Type of the payment rules: fixed, cyclic or sliding.'
+          enum:
+          - Cyclic
+        constraint:
+          $ref: '#/components/schemas/consentPaymentRuleResourceItemConstraint'
+        startOffset:
+          type: string
+          description: An offset (compliant with ISO 8601) that defines the start time of the window during which payment can be collected.   The start time is then the offset amount of time _after_ the
+            time that the consumer gave consent.
+          example: PT-5S
+        windowDuration:
+          type: string
+          description: Duration (compliant with ISO 8601) of the window during which payment can be collected. Begins at the start time defined by `startOffset`.
+          example: PT5M
+        modifications:
+          type: array
+          items:
+            type: object
+            description: A modification of a cyclic payment window that replaces one or more cycle definitions.   Enables subscriptions to be modelled that, for example, start with a free or discounted
+              trial period.
+            properties:
+              cycleIndexes:
+                type: string
+                description: The index of the cycle that is modified or replaced.
+                pattern: '[0-9]+[.]{2}[0-9]+'
+                example: 2..10
+              constraint:
+                $ref: '#/components/schemas/consentPaymentRuleResourceItemConstraint'
+        repetition:
+          type: string
+          description: The repetition cycle for the subscription collections.  'TestCycle' value can only be used in non-prod environments for testing purposes. It allows 5-minute cycle with 2 min leeway.
+          enum:
+          - TestCycle
+          - Weekly
+          - Monthly
+          - Quarterly
+          - HalfYearly
+          - Yearly
+      required:
+      - type
+      - constraint
+      - startOffset
+      - windowDuration
+      - modifications
+      - repetition
+    subscriptionPaymentResource:
+      title: Subscription payment
+      description: A subscription-based payment plan, containing the frequency, the amount, and other subscription-specific information.
+      type: object
+      properties:
+        type:
+          type: string
+          const: Subscription
+        amount:
+          $ref: '#/components/schemas/Money'
+        maxAmount:
+          description: The maximum default amount to which a subscription can increase during a given billing cycle.
+          $ref: '#/components/schemas/Money'
+        priceChangeHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/priceChangeHistoryItem'
+        startAt:
+          type: string
+          format: date-time
+          description: The date and time when the subscription starts.
+        firstPaymentAt:
+          type: string
+          format: date-time
+          description: The date and time when the first payment should be collected.  The payment capture can occur later than the value that is specified in the `startAt` field  when there is a free-trial
+            period at the beginning of the subscription.
+        endAt:
+          type: string
+          format: date-time
+          description: The date and time when the subscription will end. This is optional if the subscription is open ended.
+        repetition:
+          type: string
+          enum:
+          - TestCycle
+          - Weekly
+          - Monthly
+          - Quarterly
+          - HalfYearly
+          - Yearly
+          description: The repetition cycle for the subscription collections.  'TestCycle' value can only be used in non-prod environments for testing purposes. It allows 5-minute cycle with 2 min leeway.
+        _links:
+          type: object
+          description: HAL links to related resources.
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+      required:
+      - type
+      - amount
+      - maxAmount
+      - startAt
+      - firstPaymentAt
+      - repetition
+      - _links
+    consumerPresentFuturePaymentResource:
+      title: Consumer present future payment
+      description: A consumer present future payment that contains the payment type and amount.
+      type: object
+      properties:
+        type:
+          type: string
+          const: ConsumerPresentFuturePayment
+        amount:
+          $ref: '#/components/schemas/Money'
+        maxAuthToCaptureTime:
+          type: integer
+          description: The maximum time, in seconds, between authorisation and capture.
+        multiCapturesAllowed:
+          type: boolean
+          description: Indicates if multiple captures are allowed.
+        amountOfFirstPayment:
+          $ref: '#/components/schemas/Money'
+          description: "For consents using the consumer-present future-payment payment plan, this field  indicates the amount of the first payment-request after the consent was granted.\nThis information\
+            \ will be shown to the consumer during consent approval to make the consent request easier to recognise when acceptor PSPs want to request payment and consumer-present future-payment consent\
+            \ at the same time. \nAmounts of money in the API are represented as objects with a single property that describes both the currency (for example, euro) and the unit (which is usually the minor\
+            \ unit of the currency, for example, cents).\n\nCurrently, the only supported representation is euroCents, as shown in the example.\n\nOther currencies will be added as needed."
+        _links:
+          type: object
+          description: HAL links to related resources.
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+      required:
+      - type
+      - amount
+      - maxAuthToCaptureTime
+      - multiCapturesAllowed
+      - _links
+    eventDependentPaymentResource:
+      title: Event dependent payment
+      description: An event dependent payment, containing the payment type, the amount, and the event-dependent specific information.
+      type: object
+      properties:
+        type:
+          type: string
+          const: EventDependent
+        amount:
+          $ref: '#/components/schemas/Money'
+        description:
+          type: string
+          description: The merchant's description of the goods that were sold.
+        captureTrigger:
+          $ref: '#/components/schemas/CaptureTrigger'
+        amountPaymentType:
+          type: string
+          enum:
+          - Pay
+          - PayUpTo
+          description: Indicates if the consumer must be charged the complete amount or up to the given amount.
+        maxAuthToCaptureTime:
+          type: integer
+          description: The maximum time, in seconds, between authorisation and capture.
+        multiCapturesAllowed:
+          type: boolean
+          description: Indicates if multiple captures are allowed.
+        reason:
+          type: string
+          description: The reason why the payment will be captured in multiple payment captures.
+        _links:
+          type: object
+          description: HAL links to related resources.
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+      required:
+      - type
+      - amount
+      - captureTrigger
+      - amountPaymentType
+      - maxAuthToCaptureTime
+      - multiCapturesAllowed
+      - _links
+    requestedPaymentPlan:
+      type: object
+      oneOf:
+      - $ref: '#/components/schemas/requestedSingleImmediatePayment'
+      - $ref: '#/components/schemas/requestedC2cPayment'
+      - $ref: '#/components/schemas/requestedEventDependentPayment'
+      - $ref: '#/components/schemas/requestedSubscriptionPayment'
+      - $ref: '#/components/schemas/requestedConsumerPresentFuturePayment'
+      discriminator:
+        propertyName: type
+        mapping:
+          SingleImmediate: '#/components/schemas/requestedSingleImmediatePayment'
+          C2c: '#/components/schemas/requestedC2cPayment'
+          EventDependent: '#/components/schemas/requestedEventDependentPayment'
+          Subscription: '#/components/schemas/requestedSubscriptionPayment'
+          ConsumerPresentFuturePayment: '#/components/schemas/requestedConsumerPresentFuturePayment'
+    consentResource:
+      type: object
+      required:
+      - id
+      - acceptor
+      - status
+      - meta
+      - _links
+      properties:
+        id:
+          description: The ID of the consent resource.
+          type: string
+          format: uuid
+        shortId:
+          description: "The short ID of the consent resource. The short ID contains 10 alphanumerical characters.  The alphabetical characters are all capital letters. This ID can be used to find the resource\
+            \ if, for example, a QR-code scan fails.  \nThe `shortId` is only visible from the consumer side (not the acceptor side).   The `shortId` is visible to the consumer only while the consent request\
+            \ is in the `Requested` status.\n"
+          type: string
+        durationUntilExpiry:
+          description: The duration, in seconds, until the consent resource expires. This value must be used to calculate the 'expiredAt' of the signed consent token by adding it to the `consentedAt` timestamp.
+            Note that this parameter is always present when the consumer calls the resource. However, it is optional for the acceptor-PSP side. Because both consumers and acceptor PSPs call this endpoint,
+            this parameter is required but is marked as optional.
+          type: integer
+        consentedAt:
+          description: The timestamp when the consent token was initially signed by the wallet application. This is present only if the consent is granted and the principal is either a consumer or a technical
+            service provider.
+          type: string
+          format: date-time
+        expiresAt:
+          description: The timestamp when the consent token will expire (calculated from `consentedAt`). This is present only if the consent is granted and the principal is either a consumer or a technical
+            service provider.
+          type: string
+          format: date-time
+        acceptor:
+          description: The acceptor data that is associated with the consent request.
+          type: object
+          required:
+          - name
+          - shop
+          - mcc
+          properties:
+            id:
+              description: The acceptor ID, as is known to the acceptor PSP. This is not to be confused with EPIs internal acceptor ID.
+              type: string
+              minLength: 1
+              maxLength: 36
+            name:
+              description: The legal name of the acceptor.
+              type: string
+              minLength: 1
+              maxLength: 70
+            mcc:
+              $ref: '#/components/schemas/MerchantCategoryCode'
+              description: 'The merchant category code (MCC) of the acceptor. See ISO 18245:2023 for more information on available merchant category codes.
+
+                '
+            countryCode:
+              description: The acceptor's country code.
+              type: string
+            pspId:
+              description: The ID of the acceptor PSP. This is the same as the member ID.
+              type: string
+              format: uuid
+            shop:
+              description: If present, the shop object contains the shop name or consumer-facing name of the acceptor.
+              type: object
+              properties:
+                id:
+                  description: The acceptor shop ID, as is known to the acceptor PSP. This is not to be confused with EPIs internal shop ID.
+                  type: string
+                  minLength: 1
+                  maxLength: 36
+                name:
+                  description: The shop name or consumer-facing name of the acceptor.
+                  type: string
+                  minLength: 1
+                  maxLength: 70
+                shopLogoFallbackIdentifier:
+                  description: 'In case no shop logo is available, this identifier can be used to show a fallback logo.
+
+                    The fallback logo is derived from the acceptor''s merchant category code.'
+                  type: string
+              required:
+              - name
+        consumerIdentifier:
+          description: The data to identify the consumer that triggered the consent request.
+          type: object
+          properties:
+            walletId:
+              description: The wallet ID of the consumer
+              type: string
+              format: uuid
+          required:
+          - walletId
+        orderReferenceId:
+          description: The reference ID of the order, which is an external ID that the acceptor can use to retrieve consent resources.
+          type: string
+        callbackUrl:
+          description: The URL to which EPI central services sends an update after the consent token or its status is updated.
+          type: string
+        status:
+          $ref: '#/components/schemas/consentResourceStatus'
+        meta:
+          type: object
+          description: Metadata about the consent request.
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+          required:
+          - createdAt
+        easyCheckout:
+          $ref: '#/components/schemas/easyCheckout'
+        businessRules:
+          $ref: '#/components/schemas/businessRules'
+        beneficiaryName:
+          description: The name of the beneficiary.
+          type: string
+          minLength: 1
+          maxLength: 70
+        _links:
+          type: object
+          description: The HAL links to related resources.
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+            paymentRules:
+              description: Details of the payments that the consumer consents to with the token. For more information, see [payment rules](doc:consent-tokens#payment-rules). For a full format definition,
+                see [Retrieve the payment rules of a consent resource](ref:get-consent-payment-rules). This resource is not publicly available and requires API access.
+              $ref: '#/components/schemas/link'
+            captureRules:
+              description: Details of the rules for capturing the payment. For more information, see [capture rules](doc:consent-tokens#capture-rules). For a full format definition, see [Retrieve the capture
+                rules of a consent resource](ref:get-consent-capture-rules). This resource is not publicly available and requires API access.
+              $ref: '#/components/schemas/link'
+            paymentPlan:
+              description: The payment plan is a sub-resource of the consent resource and contains information about the payment plan that the acceptor asked the consumer to consent to. For more information,
+                see [payment plan types](doc:payment-plan-types). For a full format definition, see [Retrieve the payment plan of a consent resource](ref:get-consent-payment-plan). This resource is not
+                publicly available and requires API access.
+              $ref: '#/components/schemas/link'
+            currentToken:
+              description: The current, valid consent token. For more information, see [updated versions of consent tokens](doc:consent-model-technical-description#updated-versions-of-consent-tokens). For
+                a full format definition, see [Retrieve the current, valid consent token of a consent resource](ref:get-consent-current-token). This resource is not publicly available and requires API access.
+              $ref: '#/components/schemas/link'
+            details:
+              description: Details about the consent request, for example, description, billing address and shipping address. For an example, see the `details` object in the request body of this endpoint.
+                For a full format definition, see [Retrieve the consent's details resource](ref:get-consent-details). This resource is not publicly available and requires API access.
+              $ref: '#/components/schemas/link'
+            landingPage:
+              description: 'A link to a consent request in the following format: `https://pay.weropay.eu/{consentId}`. This resource is publicly available and does not require API access.'
+              $ref: '#/components/schemas/link'
+            returnPage:
+              description: The Wero pay page redirects to this URL after the consumer has granted or denied consent. This page is supplied by the party triggering the consent request in the `returnUrl`
+                field.
+              $ref: '#/components/schemas/link'
+            printLink:
+              description: A payment link that allows consent to be used on a given artefact, such as an invoice. This is dependent on the `printOptions` object in the request. This resource is publicly
+                available and does not require API access.
+              $ref: '#/components/schemas/link'
+            printQrCode:
+              description: A QR code that allows the consent to be used on a given artefact such as an invoice. This is dependent on the `printOptions` object in the request.
+              $ref: '#/components/schemas/link'
+            denial:
+              description: A link to deny the given consent. For a full format definition, see [Deny consent](ref:deny-consent). This resource is not publicly available and requires API access.
+              $ref: '#/components/schemas/link'
+            revocation:
+              description: A link to revoke the given consent. For a full format definition, see [Revoke consent](ref:revoke-consent). This resource is not publicly available and requires API access.
+              $ref: '#/components/schemas/link'
+            shopLogo:
+              description: A link to the shop logo.
+              $ref: '#/components/schemas/link'
+            shopInfo:
+              description: A link to the shop front sub-resource of the consent resource. For more information, see [Retrieve the shop-front of a consent resource](ref:get-consent-shop-front).
+              $ref: '#/components/schemas/link'
+        _embedded:
+          type: object
+          description: Embedded, related resources.
+          properties:
+            paymentPlan:
+              $ref: '#/components/schemas/paymentPlanResource'
+            anonymisedPaymentPlan:
+              $ref: '#/components/schemas/anonymousPaymentPlanResource'
+            currentToken:
+              $ref: '#/components/schemas/consentTokenResource'
+            paymentRules:
+              $ref: '#/components/schemas/consentPaymentRulesResource'
+            captureRules:
+              $ref: '#/components/schemas/captureRulesResource'
+            details:
+              $ref: '#/components/schemas/consentDetailsResource'
+            paymentMeans:
+              $ref: '#/components/schemas/consentMeansOfPaymentResource'
+    consentResourceStatusRevoked:
+      type: object
+      title: Consent Resource Status - Revoked
+      properties:
+        value:
+          type: string
+          const: Revoked
+        at:
+          type: string
+          format: date-time
+        source:
+          type: string
+          enum:
+          - Consumer
+          - AcceptorPsp
+          - ConsumerPsp
+      required:
+      - value
+      - at
+      - source
+    consentResourceStatusGranted:
+      type: object
+      title: Consent Resource Status - Granted
+      properties:
+        value:
+          type: string
+          const: Granted
+        at:
+          type: string
+          format: date-time
+      required:
+      - value
+      - at
+    Money:
+      title: Money
+      type: object
+      properties:
+        euroCents:
+          type: integer
+          description: 'The minimum `euroCents` value is `1`. `euroCents: 100` represents one euro.'
+      description: 'Amounts of money in the API are represented as objects with a single property that describes both the currency (for example, euro) and the unit (which is usually the minor unit of the
+        currency, for example, cents).
+
+
+        Currently, the only supported representation is euroCents, as shown in the example.
+
+
+        Other currencies will be added as needed.'
+      examples:
+      - euroCents: 4900
+    requestNewConsentRequest:
+      type: object
+      properties:
+        paymentPlan:
+          description: The proposed payment plan.
+          $ref: '#/components/schemas/requestedPaymentPlan'
+        orderReferenceId:
+          description: The order reference ID, which is an external ID that the acceptor can use to retrieve consent resources.
+          type: string
+          minLength: 1
+          maxLength: 255
+        acceptor:
+          description: Acceptor data
+          type: object
+          required:
+          - id
+          - name
+          - mcc
+          - countryCode
+          - shop
+          properties:
+            id:
+              description: The external acceptor ID (`externalId` provided by the acceptor PSP during acceptor registration), as known to the acceptor PSP.  This is not to be confused with EPI's internal
+                acceptor ID, which is returned by EPI upon registering an acceptor.  Providing the wrong ID can have a negative impact on EPI's ability to process disputes.
+              type: string
+              minLength: 1
+              maxLength: 36
+            name:
+              description: The legal name of the acceptor. As part of a consumer-to-consumer (C2C) payment, this value is the name of the C2C provider.
+              type: string
+              minLength: 1
+              maxLength: 70
+            mcc:
+              $ref: '#/components/schemas/MerchantCategoryCode'
+              description: 'The merchant category code (MCC) of the acceptor. See ISO 18245:2023 for more information on available merchant category codes.
+
+                '
+            countryCode:
+              description: The acceptor's country code.
+              type: string
+              pattern: ^[A-Z]{2}$
+              minLength: 2
+              maxLength: 2
+            shop:
+              description: Data that is related to the acceptor's shop.
+              type: object
+              required:
+              - id
+              - name
+              properties:
+                id:
+                  description: The acceptor shop ID, as is known to the acceptor PSP. This is not to be confused with EPIs internal shop ID.
+                  type: string
+                  minLength: 1
+                  maxLength: 36
+                name:
+                  description: The name of the acceptor shop. As part of a consumer-to-consumer (C2C) payment, this value is the name of the C2C provider.
+                  type: string
+                  minLength: 1
+                  maxLength: 70
+        consumerIdentifier:
+          description: 'Data to identify the consumer that triggered the consent request.
+
+            Note that if you include an optional parameter such as **consumerIdentifier**, its required properties become mandatory to include also.'
+          type: object
+          properties:
+            walletId:
+              description: The wallet ID of the consumer. This value is used to send a notification to the consumer's Wero wallet app.
+              type: string
+              format: uuid
+          required:
+          - walletId
+        returnUrl:
+          description: The Wero pay page redirects to this URL after the consumer has granted or denied consent.
+          type: string
+          minLength: 1
+          maxLength: 2000
+        callbackUrl:
+          description: The URL to which EPI central services send an update after the consent token or its state is updated.
+          type: string
+          minLength: 1
+          maxLength: 2000
+        printOptions:
+          type: object
+          description: If provided, the consent can then be used on a given artefact such as an invoice.
+          properties:
+            lifetime:
+              type: integer
+              description: The lifetime for the consent that is specified in minutes. Print artefacts such as invoices can use the `lifetime` value to highlight the time constraint on receiving payment.
+                The default is 12 weeks (120,960 minutes), and the maximum allowed lifetime is 24 weeks (241,920 minutes).
+              default: 120960
+              maximum: 241920
+              minimum: 1
+            format:
+              description: 'Acceptor PSPs can enable acceptors to create a payment link or QR code through selecting one of the following format options.  The payment amount is mandatory and fixed.  It
+                cannot be modified by the consumer during payment.  All payment links or QR codes can receive payment one time.  '
+              oneOf:
+              - const: printLink
+                description: EPI returns a payment link in the response body of the consent request.
+                title: printLink
+                default: printLink
+              - const: printQR
+                description: EPI returns a QR code in the response body of the consent request.
+                title: printQR
+                default: printQR
+              - const: printQRAndLink
+                description: EPI returns both a payment link and QR code in the response body of the consent request.
+                title: printQRAndLink
+                default: printQRAndLink
+              - type: string
+                title: future option
+                minLength: 3
+                maxLength: 255
+                not:
+                  enum:
+                  - printLink
+                  - printQR
+                  - printQRAndLink
+                description: 'This property is extensible to accommodate future consent application use-cases.
+
+                  '
+              default: default
+              examples:
+              - printQRAndLink
+              - printLink
+        details:
+          description: Additional details about the consent request, for example, description, billing address, shipping address and basket items.
+          $ref: '#/components/schemas/requestedConsentDetails'
+        easyCheckout:
+          $ref: '#/components/schemas/easyCheckout'
+        businessRules:
+          $ref: '#/components/schemas/businessRules'
+        beneficiaryName:
+          description: The name of the beneficiary.
+          type: string
+          minLength: 1
+          maxLength: 70
+        shoppingDeviceTelemetry:
+          $ref: '#/components/schemas/InboundConsumerDeviceTelemetry'
+        initiationType:
+          description: Acceptor PSPs must set this field if the consent is requested from a consumer who scanned a QR code to start a WERO payment flow.
+          type: string
+          enum:
+          - AcceptorStaticQrCode
+          - InvoiceQrCode
+          - WeroStaticQrCode
+      required:
+      - paymentPlan
+      - acceptor
+      - orderReferenceId
+    consentPaymentRuleResourceItemConstraint:
+      type: object
+      description: 'Type of the payment constraint: Single or Multiple.'
+      properties:
+        type:
+          type: string
+          enum:
+          - Single
+          - Multiple
+          description: Specifies whether the consent is for a single payment request or for multiple payment requests. In the case of multiple payment requests, the sum of all requests must not exceed the
+            `maxAmount`.
+        maxAmount:
+          $ref: '#/components/schemas/Money'
+      required:
+      - type
+      - maxAmount
+    anonymousC2cPaymentResource:
+      title: Consumer-to-consumer (C2C) payment
+      description: A consumer-to-consumer (C2C) payment, containing the payment type and amount.
+      type: object
+      properties:
+        type:
+          type: string
+          const: C2c
+        amount:
+          $ref: '#/components/schemas/Money'
+      required:
+      - type
+      - amount
+    requestedC2cPayment:
+      title: Consumer-to-consumer (C2C) payment
+      description: A consumer-to-consumer (C2C) payment (temporarily also used for C2B and B2B in the Dutch market), containing the payment type, amount, ultimate beneficiary name, and IBAN, as well as
+        an optional indicator about the type of transaction (B2B, C2B, C2C).
+      type: object
+      properties:
+        type:
+          type: string
+          const: C2c
+        amount:
+          $ref: '#/components/schemas/Money'
+        ultimateBeneficiaryName:
+          type: string
+          minLength: 1
+          maxLength: 70
+          description: The name of the ultimate beneficiary of the payment.
+        ultimateBeneficiaryIban:
+          $ref: '#/components/schemas/IBAN'
+          description: The IBAN of the ultimate beneficiary of the payment.
+        commercial:
+          type: boolean
+          default: false
+          description: Indicates whether the payment is commercial or not. If set to true, the payment is considered to be C2B or B2B. If set to false, it is considered to be a non-commercial C2C payment.
+            Defaults to false if not specified.
+      required:
+      - type
+      - amount
+      - ultimateBeneficiaryName
+      - ultimateBeneficiaryIban
+    ConstraintViolationProblem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type only in the context of the provided endpoint.
+          const: /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          default: Constraint Violation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          default: 400
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+        violations:
+          type: array
+          description: A list of constraint violations.
+          items:
+            type: object
+            required:
+            - field
+            - message
+            properties:
+              field:
+                type: string
+                description: The name of the field that caused the constraint violation.
+              message:
+                type: string
+                description: A technical message that describes the constraint violation, in English.
+              userMessageKey:
+                type: string
+                description: A key that describes the type of constraint violation, useful to report user input validation error. The key can be used to look up a localised message for instance, that can
+                  then be interpolated using the `userMessageValue`.
+                example: constraint.string.min-length
+                oneOf:
+                - type: string
+                  title: Standard constraint violation key
+                  description: 'All known standard constraint violation keys: * **constraint.required**: The field is required. * **constraint.type**: The field must be of the correct type. * **constraint.enum**:
+                    The field must be one of the allowed values. `userMessageValue` contains the list as a string value. * **constraint.const**: The field must be a specific value. `userMessageValue` contains
+                    the value as a string value. * **constraint.number.multiple-of**: The field must be a multiple of a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-inclusive**:
+                    The field must be less than or equal to a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-exclusive**: The field must be less
+                    than a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.minimum-inclusive**: The field must be greater than or equal to a specific number.
+                    `userMessageValue` contains the number as a string value.            * **constraint.number.minimum-exclusive**: The field must be greater than a specific number. `userMessageValue` contains
+                    the number as a string value. * **constraint.string.max-length**: The field must be at most a specific number of characters long. `userMessageValue` contains the number as a string value.
+                    * **constraint.string.min-length**: The field must be at least a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.min-length-not-blank**:
+                    The field must be at least a specific number of characters long and not blank. `userMessageValue` contains the number as a string value. * **constraint.string.max-graphemes**: The field
+                    must be at most a specific number of graphemes long. `userMessageValue` contains the number as a string value. * **constraint.string.pattern**: The field must match a specific pattern.
+                    * **constraint.string.length**: The field must be a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.url**: The field
+                    must be a valid URL. * **constraint.string.url-https**: The field must be a valid HTTPS URL. * **constraint.string.uuid4**: The field must be a valid UUID v4. * **constraint.string.email**:
+                    The field must be a valid email address. * **constraint.string.phone-number**: The field must be a valid phone number. * **constraint.duration.min-seconds**: The field must be at least
+                    a specific number of seconds long. `userMessageValue` contains the number as a string value. * **constraint.duration.max-days**: The field must be at most a specific number of days long.
+                    `userMessageValue` contains the number as a string value. * **constraint.datetime.before**: The field must be before a specific date and time. `userMessageValue` contains the `datetime`
+                    as a timestamp string value. * **constraint.array.min-items**: The field must contain at least a specific number of items. `userMessageValue` contains the number as a string value. *
+                    **constraint.array.max-items**: The field must contain at most a specific number of items. `userMessageValue` contains the number as a string value. * **constraint.array.unique-items**:
+                    The field must contain only unique items. * **constraint.amount.maximum**: The field must be less than or equal to a specific amount. * **constraint.amount.minimum**: The field must
+                    be greater than or equal to a specific amount. * **constraint.currency-supported**: The field must be a supported currency.'
+                  enum:
+                  - constraint.required
+                  - constraint.type
+                  - constraint.enum
+                  - constraint.const
+                  - constraint.number.multiple-of
+                  - constraint.number.maximum-inclusive
+                  - constraint.number.maximum-exclusive
+                  - constraint.number.minimum-inclusive
+                  - constraint.number.minimum-exclusive
+                  - constraint.string.max-length
+                  - constraint.string.min-length
+                  - constraint.string.min-length-not-blank
+                  - constraint.string.max-graphemes
+                  - constraint.string.pattern
+                  - constraint.string.length
+                  - constraint.string.url
+                  - constraint.string.url-https
+                  - constraint.string.uuid4
+                  - constraint.string.email
+                  - constraint.string.phone-number
+                  - constraint.duration.min-seconds
+                  - constraint.duration.max-days
+                  - constraint.datetime.before
+                  - constraint.array.min-items
+                  - constraint.array.max-items
+                  - constraint.array.unique-items
+                  - constraint.amount.maximum
+                  - constraint.amount.minimum
+                  - constraint.currency-supported
+                - type: string
+                  description: Placeholder for a future user message key.
+                  title: Placeholder for future message keys
+                  not:
+                    enum:
+                    - constraint.required
+                    - constraint.type
+                    - constraint.enum
+                    - constraint.const
+                    - constraint.number.multiple-of
+                    - constraint.number.maximum-inclusive
+                    - constraint.number.maximum-exclusive
+                    - constraint.number.minimum-inclusive
+                    - constraint.number.minimum-exclusive
+                    - constraint.string.max-length
+                    - constraint.string.min-length
+                    - constraint.string.min-length-not-blank
+                    - constraint.string.max-graphemes
+                    - constraint.string.pattern
+                    - constraint.string.length
+                    - constraint.string.url
+                    - constraint.string.url-https
+                    - constraint.string.uuid4
+                    - constraint.string.email
+                    - constraint.string.phone-number
+                    - constraint.duration.min-seconds
+                    - constraint.duration.max-days
+                    - constraint.datetime.before
+                    - constraint.array.min-items
+                    - constraint.array.max-items
+                    - constraint.array.unique-items
+                    - constraint.amount.maximum
+                    - constraint.amount.minimum
+                    - constraint.currency-supported
+              userMessageValue:
+                type: string
+                description: A string value that can be used to replace a placeholder in the localised message.
+      required:
+      - type
+      - title
+      - status
+      - violations
+    anonymousConsumerPresentFuturePaymentResource:
+      title: Consumer present future payment
+      description: A consumer present future payment plan, containing the type and the amount.
+      type: object
+      properties:
+        type:
+          type: string
+          const: ConsumerPresentFuturePayment
+        amount:
+          $ref: '#/components/schemas/Money'
+        amountOfFirstPayment:
+          $ref: '#/components/schemas/Money'
+          description: "For consents using the consumer-present future-payment payment plan, this field indicates the amount of the first payment-request after the consent was granted.\nThis information\
+            \ will be shown to the consumer during consent approval to make the consent request easier to recognise when acceptor PSPs want to request payment and consumer-present future-payment consent\
+            \ at the same time.\nIndicates the amount of the payment initiated together with the consumer\u2011present future payment consent.\nAmounts of money in the API are represented as objects with\
+            \ a single property that describes both the currency (for example, euro) and the unit (which is usually the minor unit of the currency, for example, cents).\n\nCurrently, the only supported\
+            \ representation is euroCents, as shown in the example.\n\nOther currencies will be added as needed."
+      required:
+      - type
+      - amount
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type, only in the context of the provided endpoint.
+          default: about:blank
+          example: /some/uri-reference
+          not:
+            enum:
+            - /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          example: some title for the error situation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem, which helps locate the problem and describes how to proceed.
+          example: some description for the error situation
+        instance:
+          type: string
+          format: uri-reference
+          description: A URI reference that identifies the specific occurrence of the problem, for example, by adding a fragment identifier or sub-path to the problem type. Can be used to locate the root
+            of the problem in the source code.
+          example: /some/uri-reference#specific-occurrence-context
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+      required:
+      - type
+      - title
+      - status
+    requestedSubscriptionPayment:
+      title: Subscription payment
+      description: A subscription-based payment plan, containing the frequency, the amount, and other subscription-specific information.
+      type: object
+      properties:
+        type:
+          type: string
+          const: Subscription
+        amount:
+          $ref: '#/components/schemas/Money'
+        startAt:
+          type: string
+          format: date-time
+          description: The date and time when the subscription starts.
+        firstPaymentAt:
+          type: string
+          format: date-time
+          description: The date and time when the first payment is captured. The payment capture can occur later than the value that is specified in the `startAt` field  when there is a free-trial period
+            at the beginning of the subscription.
+        endAt:
+          type: string
+          format: date-time
+          description: The date and time when the subscription will end. This is optional if the subscription is open ended.
+        repetition:
+          type: string
+          enum:
+          - TestCycle
+          - Weekly
+          - Monthly
+          - Quarterly
+          - HalfYearly
+          - Yearly
+          description: The repetition cycle for the subscription collections.  'TestCycle' value can only be used in non-prod environments for testing purposes. It allows 5-minute cycle with 2 min leeway.
+          minLength: 3
+          maxLength: 255
+      required:
+      - type
+      - amount
+      - startAt
+      - firstPaymentAt
+      - repetition
+    requestedConsentDetails:
+      type: object
+      properties:
+        description:
+          type: string
+          description: The description in the consent request. The description is provided by the acceptor.
+          minLength: 1
+          maxLength: 128
+        orderPageUrl:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: 'The URL of the order page. The URL is provided by the acceptor and can be called by the wallet to display the order inside the shop application. The URL must adhere to following
+            requirements: - be a valid HTTPS URL - point to the acceptor''s shop''s own domain (third party domains are not allowed) - not contain URL redirect parameters (e.g. `?redirect=` or `url=`) -
+            not contain executable code (e.g. JavaScript)'
+        gift:
+          type: boolean
+          description: Indicates whether the purchased goods are a gift for someone else. The gift flag is set by the acceptor.
+          default: false
+        billingAddress:
+          description: The billing address of the consumer.
+          $ref: '#/components/schemas/requestedAddress'
+        shippingAddress:
+          description: The shipping address of the consumer.
+          $ref: '#/components/schemas/requestedAddress'
+        shippingCosts:
+          description: The shipping costs (if any exist).
+          $ref: '#/components/schemas/Money'
+        basketItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/consentBasketItem'
+    singleImmediatePaymentResource:
+      title: Single, immediate payment
+      description: A single, immediate payment, containing the payment type and amount.
+      type: object
+      properties:
+        type:
+          type: string
+          const: SingleImmediate
+        amount:
+          $ref: '#/components/schemas/Money'
+        _links:
+          type: object
+          description: HAL links to related resources.
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+      required:
+      - type
+      - amount
+      - _links
+    page:
+      type: object
+      examples:
+      - size: 1
+        totalElements: 1
+        totalPages: 1
+        number: 0
+        requestedPageSize: 10
+        limitReached: false
+      properties:
+        size:
+          type: integer
+          description: The number of elements on the page.
+        totalElements:
+          type: integer
+          description: The total number of elements available with the query.
+        totalPages:
+          type: integer
+          description: The total number of pages available, using the requested page size.
+        number:
+          type: integer
+          description: The number of the current page. Page numbers start at `0` and continue to the total number of pages.
+        requestedPageSize:
+          type: integer
+          description: The requested page size. The value of "size" might differ for the last page if the last page is not full.
+        limitReached:
+          type: boolean
+          description: If `true`, an internal limit when retrieving results was exceeded. Not all elements are returned.
+      description: A paginated resource is a HAL resource. The resource contains the page object, which describes the provided subset of data. The data is provided as an embedded collection resource. The
+        name of the collection depends on the endpoint. HAL links are also provided, for navigation.
+      title: Structure of a paginated response
+      required:
+      - size
+      - totalElements
+      - totalPages
+      - number
+      - requestedPageSize
+      - limitReached
+    requestedConsumerPresentFuturePayment:
+      title: Consumer present future payment
+      description: A consumer present future payment that contains the payment type and amount.
+      type: object
+      properties:
+        type:
+          type: string
+          const: ConsumerPresentFuturePayment
+        maxAuthToCaptureTime:
+          type: integer
+          description: The maximum time, in seconds, between authorisation and capture. The default value is `604800`, i.e. one week.
+          default: 604800
+          format: int32
+          minimum: 1
+          maximum: 864000
+        multiCapturesAllowed:
+          type: boolean
+          description: Indicates if multiple captures are allowed. The default value is `false`.
+          default: false
+        amount:
+          $ref: '#/components/schemas/Money'
+          description: "Amounts of money in the API are represented as objects with a single property that describes both the currency (for example, euro) and the unit (which is usually the minor unit of\
+            \ the currency, for example, cents).\n\nCurrently, the only supported representation is euroCents, as shown in the example.\n\nOther currencies will be added as needed.\nFor this payment plan\
+            \ type, the value in the amount field defines the maximum cumulative amount that can be spent within any rolling 4\u2011week period. The current default is 800.00 EUR. Consequently, the amount\
+            \ field must be set to 800.00 EUR when the payment plan is created; otherwise, the request will be rejected. After creation, the consumer can change this limit from their wallet at their discretion."
+        amountOfFirstPayment:
+          $ref: '#/components/schemas/Money'
+          description: "This amount is used to indicate that a consumer\u2011present future payment consent was initiated together with a payment for a specific purchase. To ensure the consumer can see\
+            \ the exact purchase amount when they are asked to provide consent, the corresponding amount must be supplied here.\nAmounts of money in the API are represented as objects with a single property\
+            \ that describes both the currency (for example, euro) and the unit (which is usually the minor unit of the currency, for example, cents).\n\nCurrently, the only supported representation is\
+            \ euroCents, as shown in the example.\n\nOther currencies will be added as needed."
+      required:
+      - type
+      - amount
+    consentPaymentRuleResourceItem:
+      oneOf:
+      - $ref: '#/components/schemas/consentPaymentRuleResourceItemFixed'
+      - $ref: '#/components/schemas/consentPaymentRuleResourceItemCyclic'
+      - $ref: '#/components/schemas/consentPaymentRuleResourceItemSliding'
+      discriminator:
+        propertyName: type
+        mapping:
+          Fixed: '#/components/schemas/consentPaymentRuleResourceItemFixed'
+          Cyclic: '#/components/schemas/consentPaymentRuleResourceItemCyclic'
+          Sliding: '#/components/schemas/consentPaymentRuleResourceItemSliding'
+    requestedAddress:
+      type: object
+      properties:
+        companyName:
+          description: Consumer PSPs can give the name of the company to indicate that the address belongs to a business entity.
+          type: string
+          minLength: 1
+          maxLength: 128
+        recipientName:
+          type: string
+          description: The name of the recipient.
+          minLength: 1
+          maxLength: 128
+        line1:
+          type: string
+          description: The first line of the address.
+          minLength: 1
+          maxLength: 300
+        line2:
+          type: string
+          description: The second line of the address.
+          minLength: 1
+          maxLength: 300
+        city:
+          type: string
+          description: The city of the address.
+          minLength: 1
+          maxLength: 64
+        postalCode:
+          type: string
+          description: The postal code of the address.
+          minLength: 1
+          maxLength: 32
+        state:
+          type: string
+          description: The state of the address.
+          minLength: 1
+          maxLength: 300
+        countryCode:
+          type: string
+          description: The country code of the address.
+          pattern: ^[A-Z]{2}$
+          minLength: 2
+          maxLength: 2
+      required:
+      - recipientName
+      - line1
+      - city
+      - postalCode
+    requestedEventDependentPayment:
+      title: Event-dependent payment
+      description: An event-dependent payment that contains the payment type, amount, capture trigger and amount payment type.
+      type: object
+      properties:
+        type:
+          type: string
+          const: EventDependent
+        description:
+          type: string
+          description: The merchant's description for the goods that were sold.
+          minLength: 1
+          maxLength: 128
+        captureTrigger:
+          type: string
+          enum:
+          - Shipping
+          - Delivery
+          - Availability
+          - ServiceFulfilment
+          - Other
+          description: The trigger for capturing the payment.
+          minLength: 3
+          maxLength: 255
+        amountPaymentType:
+          type: string
+          enum:
+          - Pay
+          - PayUpTo
+          description: Indicates if the consumer must be charged the complete amount or up to the amount.
+          minLength: 3
+          maxLength: 255
+        maxAuthToCaptureTime:
+          type: integer
+          format: int32
+          default: 604800
+          minimum: 1
+          maximum: 864000
+          description: The maximum time, in seconds, between authorisation and capture. The default value is `604800 `, which translates to one week.
+        multiCapturesAllowed:
+          type: boolean
+          description: Indicates if multiple captures are allowed. The default value is `false`.
+          default: false
+        reason:
+          type: string
+          description: The reason for the payment.
+          minLength: 1
+          maxLength: 128
+        amount:
+          $ref: '#/components/schemas/Money'
+      required:
+      - type
+      - amount
+      - captureTrigger
+      - amountPaymentType
+    c2cPaymentResource:
+      title: Consumer-to-consumer (C2C) payment
+      description: A consumer-to-consumer (C2C) payment (temporarily also used for C2B and B2B in the Dutch market), containing the payment type, amount, ultimate beneficiary name, and IBAN, as well as
+        an indicator about the type of transaction (B2B, C2B, C2C).
+      type: object
+      properties:
+        type:
+          type: string
+          const: C2c
+        amount:
+          $ref: '#/components/schemas/Money'
+        ultimateBeneficiaryName:
+          type: string
+          minLength: 1
+          maxLength: 70
+          description: The name of the ultimate beneficiary of the payment.
+        ultimateBeneficiaryIban:
+          $ref: '#/components/schemas/IBAN'
+          description: The IBAN of the ultimate beneficiary of the payment.
+        commercial:
+          type: boolean
+          default: false
+          description: 'Indicates whether the payment is commercial or not. If set to true, the payment is considered to be C2B or B2B. If set to false, it is considered to be a non-commercial C2C payment.
+            Defaults to false if not specified. '
+      required:
+      - type
+      - amount
+      - ultimateBeneficiaryName
+      - ultimateBeneficiaryIban
+      - commercial
+    captureRulesResource:
+      type: object
+      description: The rules for capturing the payment.
+      properties:
+        captureRules:
+          type: object
+          required:
+          - maxDurationAfterAuthorization
+          - multiCapturesAllowed
+          properties:
+            maxDurationAfterAuthorization:
+              type: integer
+              description: The maximum duration, in seconds, for captures to complete after a payment authorisation is granted.
+            multiCapturesAllowed:
+              type: boolean
+              description: Indicates if multiple payment captures are allowed.
+        _links:
+          type: object
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+      required:
+      - captureRules
+      - _links
+      title: Capture rules
+    link:
+      type: object
+      properties:
+        href:
+          type: string
+          format: uri
+        name:
+          type: string
+      required:
+      - href
+    consentDetailsResource:
+      type: object
+      properties:
+        description:
+          type: string
+          description: The description that is provided by the acceptor in the consent request.
+        orderPageUrl:
+          type: string
+          description: The URL of the order page. The URL is provided by the acceptor and can be called by the wallet to display the order in the shop application. The URL must be a valid HTTPS URL.
+        gift:
+          type: boolean
+          description: Indicates whether the purchased goods are a gift for someone else. The gift flag is set by the acceptor.
+          default: false
+        billingAddress:
+          $ref: '#/components/schemas/consentDetailsResourceAddress'
+        shippingAddress:
+          $ref: '#/components/schemas/consentDetailsResourceAddress'
+        shippingCosts:
+          description: The shipping costs (if any exist).
+          $ref: '#/components/schemas/Money'
+        contact:
+          description: "The contact details of the consumer in an easy-checkout scenario.\n>\u2757\uFE0F Currently, the easy-checkout feature is available only for the Dutch market. > **\u26A0\uFE0F Advance\
+            \ notice of breaking change**. Easy checkout profiles are deprecated and will be removed on 2026-09-02."
+          type: object
+          properties:
+            emailAddress:
+              type: string
+              description: The consumer's email address.
+              format: email
+            phoneNumber:
+              type: string
+              description: The consumer's phone number in E.164 format.
+        _links:
+          type: object
+          description: HAL links to related resources.
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+            orderPage:
+              $ref: '#/components/schemas/link'
+    anonymousSingleImmediatePaymentResource:
+      title: Single, immediate payment
+      description: A single, immediate payment, containing the payment type and amount.
+      type: object
+      properties:
+        type:
+          type: string
+          const: SingleImmediate
+        amount:
+          $ref: '#/components/schemas/Money'
+      required:
+      - type
+      - amount
+    consentDetailsResourceAddress:
+      type: object
+      title: Address
+      required:
+      - recipientName
+      - line1
+      - city
+      - postalCode
+      - countryCode
+      properties:
+        companyName:
+          type: string
+          minLength: 1
+          maxLength: 128
+        recipientName:
+          type: string
+          minLength: 1
+          maxLength: 128
+        line1:
+          type: string
+          minLength: 1
+          maxLength: 300
+        line2:
+          type: string
+          minLength: 1
+          maxLength: 300
+        city:
+          type: string
+          minLength: 1
+          maxLength: 64
+        postalCode:
+          type: string
+          minLength: 1
+          maxLength: 32
+        state:
+          type: string
+          minLength: 1
+          maxLength: 300
+        countryCode:
+          type: string
+    consentResourceStatusDenied:
+      type: object
+      title: Consent Resource Status - Denied
+      properties:
+        value:
+          type: string
+          const: Denied
+        at:
+          type: string
+          format: date-time
+        source:
+          description: If the user abandons the payment flow by returning to the checkout page, the source will be set to `Anonymous`. In all other cases, the source property will be left empty.
+          type: string
+          enum:
+          - Anonymous
+      required:
+      - value
+      - at
+    IBAN:
+      type: string
+    InboundConsumerDeviceTelemetry:
+      type: object
+      title: Consumer device telemetry
+      description: 'Telemetry data ("device fingerprint") of the device used by the consumer.
+
+
+        EPI cannot guarantee consumer PSPs will send a complete set of consumer device telemetry properties, and therefore they are treated as optional.
+
+
+        It is possible to send additional properties in this object, which EPI will pass on verbatim to EPI''s fraud scoring service provider for evaluation.
+
+
+        This is to allow for easier integration on the consumer PSP side.
+
+
+        However, PSPs are strongly encouraged to provide values for the properties as specified here where possible in order for EPI to provide the best possible fraud scoring.'
+      additionalProperties: true
+      properties:
+        deviceIpAddress:
+          description: The IPv4 or IPv6 address of the consumer's device.
+          type: string
+          example: 192.0.2.123
+        devicePort:
+          description: The ephemeral port of the consumer's device.
+          type: integer
+          example: 52314
+        deviceUserAgent:
+          description: The user agent string of the device used by the consumer. This will often contain information redundantly captured in the `deviceOs` and `deviceModel` properties.
+          type: string
+          maxLength: 256
+          examples:
+          - Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 ...
+          - Mozilla/5.0 (Linux; Android 10; Pixel 3) AppleWebKit/537.36...
+        deviceModel:
+          description: The model of the device used by the consumer.
+          type: string
+          maxLength: 256
+          examples:
+          - iPhone12,1
+          - Pixel 3
+        deviceScreenResolution:
+          description: The screen resolution of the device used by the consumer, in pixels (width x height).
+          type: string
+          examples:
+          - 828x1792
+          - 1080x2280
+        deviceCellularProviders:
+          type: string
+          maxLength: 256
+          description: The cellular provider(s) of the device used by the consumer. This is a comma-separated list of the names of the cellular providers.
+          examples:
+          - Telekom, Vodafone
+          - T-Mobile
+        deviceLocation:
+          description: The location of the device used by the consumer. This is a comma-separated list of the latitude and longitude of the device.
+          type: string
+          example: 37.7749,-122.4194
+        deviceTimeZone:
+          description: The time zone of the device used by the consumer.
+          type: string
+          maxLength: 256
+          example: America/Los_Angeles
+        deviceId:
+          description: 'The unique device identifier of the device used by the consumer. Note: Formats differ (UUID on iOS vs. 64-bit hex string on Android).'
+          type: string
+          maxLength: 256
+          examples:
+          - 6fc1c567-a4cd-45c5-9e44-c5a5b9a6f09a
+          - 2b6f0cc904d137be2e1730235f5664094b831186
+        deviceOs:
+          description: The operating system of the device used by the consumer.
+          type: string
+          examples:
+          - iOS
+          - Android
+        deviceLanguage:
+          description: The language of the device used by the consumer.
+          type: string
+          example: en_US
+        deviceTime:
+          description: The time on the device used by the consumer, in ISO 8601 format.
+          type: string
+          format: date-time
+          example: '2023-09-25T12:34:56Z'
+    consentResourceStatus:
+      description: 'A consent resource represents the consent request sent by the acceptor to the consumer and can have one of the following statuses:
+
+
+        |       Status      |                            Description                                                                                  |
+
+        |:-----------------:|:-----------------------------------------------------------------------------------------------------------------------:|
+
+        | Requested         | EPI central services have sent the consent request to the consumer. The consumer has not yet granted or denied consent. |
+
+        | Granted           | The consumer has granted consent (that is, they have consented to the payment plan).                                    |
+
+        | Denied            | The consumer has denied consent (that is, they have rejected the payment plan).                                         |
+
+        | Revoked           | The consent that was initially granted has been revoked.                                                                |
+
+        | TimedOut          | The request timed out before the consumer could grant or deny consent.                                                  |'
+      discriminator:
+        propertyName: value
+        mapping:
+          Requested: '#/components/schemas/consentResourceStatusRequested'
+          Granted: '#/components/schemas/consentResourceStatusGranted'
+          Denied: '#/components/schemas/consentResourceStatusDenied'
+          Revoked: '#/components/schemas/consentResourceStatusRevoked'
+          TimedOut: '#/components/schemas/consentResourceStatusTimedOut'
+      oneOf:
+      - $ref: '#/components/schemas/consentResourceStatusRequested'
+      - $ref: '#/components/schemas/consentResourceStatusGranted'
+      - $ref: '#/components/schemas/consentResourceStatusDenied'
+      - $ref: '#/components/schemas/consentResourceStatusRevoked'
+      - $ref: '#/components/schemas/consentResourceStatusTimedOut'
+    consentPaymentRuleResourceItemFixed:
+      type: object
+      properties:
+        type:
+          type: string
+          description: 'Type of the payment rules: fixed, cyclic or sliding.'
+          enum:
+          - Fixed
+        constraint:
+          $ref: '#/components/schemas/consentPaymentRuleResourceItemConstraint'
+        startOffset:
+          type: string
+          description: An offset (compliant with ISO 8601) that defines the start time of the window during which payment can be collected.   The start time is then the offset amount of time _after_ the
+            time that the consumer gave consent.
+          example: PT-5S
+        windowDuration:
+          type: string
+          description: Duration (compliant with ISO 8601) of the window during which payment can be collected. Begins at the start time defined by `startOffset`.
+          example: PT5M
+      required:
+      - type
+      - constraint
+      - startOffset
+      - windowDuration
+    consentCollectionResource:
+      type: object
+      title: Collection Resource
+      required:
+      - _embedded
+      - _links
+      additionalProperties: false
+      properties:
+        _embedded:
+          type: object
+          required:
+          - consents
+          properties:
+            consents:
+              type: array
+              items:
+                $ref: '#/components/schemas/consentResource'
+        _links:
+          type: object
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+    consentResourceStatusRequested:
+      type: object
+      title: Consent Resource Status - Requested
+      properties:
+        value:
+          type: string
+          const: Requested
+        at:
+          type: string
+          format: date-time
+        timesOutAt:
+          type: string
+          format: date-time
+      required:
+      - value
+      - at
+    consentResourceStatusTimedOut:
+      type: object
+      title: Consent Resource Status - Timed Out
+      properties:
+        value:
+          type: string
+          const: TimedOut
+        at:
+          type: string
+          format: date-time
+      required:
+      - value
+      - at
+    consentTokenResource:
+      type: object
+      description: The consent token resource.
+      properties:
+        token:
+          type: string
+          description: The consent token (JWS format).
+        _links:
+          type: object
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+          required:
+          - self
+    anonymousEventDependentPaymentResource:
+      title: Event-dependent payment
+      description: An event-dependent payment, containing the payment type and amount.
+      type: object
+      properties:
+        type:
+          type: string
+          const: EventDependent
+        amount:
+          $ref: '#/components/schemas/Money'
+        description:
+          type: string
+          description: The merchant's description of the goods that were sold.
+      required:
+      - type
+      - amount

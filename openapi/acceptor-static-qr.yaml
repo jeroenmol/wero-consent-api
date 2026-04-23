@@ -1,0 +1,512 @@
+openapi: 3.0.0
+info:
+  title: Acceptor Static Qr API
+  version: 1.0.0
+  description: API specification for acceptor-static-qr resource
+servers:
+- url: https://api.example.com
+paths:
+  /api/acceptor-static-qr:
+    servers: []
+    post:
+      summary: Register an acceptor static QR [Acceptor PSP] (UNSTABLE)
+      description: "This endpoint allows an acceptor PSP to register an acceptor static QR with EPI central services.\nMatching QR codes can then be scanned by Wero consumers to initiate payments to the\
+        \ acceptor.\n## Scope \nThis endpoint requires the `acceptor:management` scope."
+      tags:
+      - acceptor-static-qr
+      operationId: post-acceptor-static-qr
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptorStaticQRCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/AcceptorStaticQRResource'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/Problem'
+                - $ref: '#/components/schemas/ConstraintViolationProblem'
+                discriminator:
+                  propertyName: type
+                  mapping:
+                    about:blank: '#/components/schemas/Problem'
+                    /problem/constraint-violation: '#/components/schemas/ConstraintViolationProblem'
+                    /problem/acceptor-static-qr/redirect-url-invalid: '#/components/schemas/Problem'
+                    /problem/acceptor-static-qr/redirect-url-not-matching-domain: '#/components/schemas/Problem'
+                    /problem/acceptor-static-qr/reserved-domain: '#/components/schemas/Problem'
+              examples:
+                ConstraintViolationProblem:
+                  value:
+                    type: /problem/constraint-violation
+                    title: Constraint Violation
+                    callId: 95a26cc6-341b-43e4-b9b9-c0138bc79f81
+                    status: 400
+                    violations:
+                    - field: .matchingRule
+                      message: must be a valid matching rule
+                    - field: .redirectUrl
+                      message: must be a valid URL
+                      userMessageKey: constraint.string.url
+                StaticQRInvalidRedirectUrlException:
+                  value:
+                    type: /problem/acceptor-static-qr/redirect-url-invalid
+                    title: Bad Request
+                    status: 400
+                    detail: The provided redirectUrl is not a valid URL.
+                StaticQRRedirectUrlNotMatchingDomainException:
+                  value:
+                    type: /problem/acceptor-static-qr/redirect-url-not-matching-domain
+                    title: Bad Request
+                    status: 400
+                    detail: The provided redirectUrl does not match the domain of the matchingRule.
+                StaticQRReservedDomainException:
+                  value:
+                    type: /problem/acceptor-static-qr/reserved-domain
+                    title: Bad Request
+                    status: 400
+                    detail: The domain name provided in the matchingRule is reserved and cannot be used.
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                AcceptorWrongOwnershipException:
+                  value:
+                    type: /problem/acceptor/wrong-ownership
+                    title: Forbidden
+                    status: 403
+                    detail: The acceptor does not belong to the authenticated PSP.
+                UnauthorizedAccessException:
+                  value:
+                    type: /problem/acceptor-static-qr/unauthorized-access
+                    title: Forbidden
+                    status: 403
+                    detail: The acceptor static QR does not belong to the authenticated service provider actor.
+        '409':
+          description: Conflict
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                StaticQRConflictingRuleException:
+                  value:
+                    type: /problem/acceptor-static-qr/conflicting-matching-rule
+                    title: Conflict
+                    status: 409
+                    detail: The provided matchingRule conflicts with an existing entry.
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                AcceptorNotFoundException:
+                  value:
+                    type: /problem/acceptor/not-found
+                    title: Unprocessable Entity
+                    status: 422
+                    detail: The specified acceptorId does not correspond to any known acceptor.
+      security:
+      - BearerAccessToken: []
+    get:
+      summary: List acceptor static QRs [Acceptor PSP] (UNSTABLE)
+      description: 'This endpoint allows an acceptor PSP to retrieve a list of all registered static QRs associated with their acceptors.
+
+        The list can be filtered by acceptor ID to show only static QRs associated with a specific acceptor.
+
+        ## Scope
+
+        This endpoint requires the `acceptor:management` scope.'
+      tags:
+      - acceptor-static-qr
+      operationId: get-acceptor-static-qr
+      parameters:
+      - in: query
+        name: acceptorId
+        schema:
+          type: string
+          format: uuid
+        description: Filter the results to include only static QRs associated with the specified acceptor ID.
+        required: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AcceptorStaticQRResource'
+                required:
+                - items
+              examples:
+                multiple:
+                  value:
+                    items:
+                    - id: 123e4567-e89b-12d3-a456-426614174000
+                      acceptorId: 987e6543-e21b-12d3-a456-426614174000
+                      matchingRule:
+                        type: domain-name
+                        domainName: example.com
+                      redirectUrl: https://example.com/redirect
+        '403':
+          $ref: '#/components/responses/errorResponse403'
+      security:
+      - BearerAccessToken: []
+components:
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type, only in the context of the provided endpoint.
+          default: about:blank
+          example: /some/uri-reference
+          not:
+            enum:
+            - /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          example: some title for the error situation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem, which helps locate the problem and describes how to proceed.
+          example: some description for the error situation
+        instance:
+          type: string
+          format: uri-reference
+          description: A URI reference that identifies the specific occurrence of the problem, for example, by adding a fragment identifier or sub-path to the problem type. Can be used to locate the root
+            of the problem in the source code.
+          example: /some/uri-reference#specific-occurrence-context
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+      required:
+      - type
+      - title
+      - status
+    AcceptorStaticQRMatchingRule:
+      title: Matching rule
+      description: A rule that defines how to match QR code URLs to an acceptor static QR.
+      type: object
+      oneOf:
+      - $ref: '#/components/schemas/AcceptorStaticQRMatchingRuleDomain'
+      - $ref: '#/components/schemas/AcceptorStaticQRMatchingRuleHostname'
+      - $ref: '#/components/schemas/AcceptorStaticQRMatchingRulePathPrefix'
+      discriminator:
+        propertyName: type
+        mapping:
+          domain-name: '#/components/schemas/AcceptorStaticQRMatchingRuleDomain'
+          host-name: '#/components/schemas/AcceptorStaticQRMatchingRuleHostname'
+          path-prefix: '#/components/schemas/AcceptorStaticQRMatchingRulePathPrefix'
+    AcceptorStaticQRMatchingRuleHostname:
+      title: Host name matching rule
+      description: A rule that matches requests based on a specific host name.
+      type: object
+      properties:
+        type:
+          type: string
+          description: The type of matching rule (always 'host-name').
+          const: host-name
+          enum:
+          - host-name
+        hostName:
+          type: string
+          description: 'The host name (domain + subdomain) to match against. This should not include a path or protocol (e.g., `www.example.com`).
+
+            This should match the host of the URL in full.'
+          minLength: 1
+          maxLength: 255
+          example: www.example.com
+      required:
+      - type
+      - hostName
+    AcceptorStaticQRMatchingRulePathPrefix:
+      title: Path prefix matching rule
+      description: A rule that matches requests based on a specific host name and path prefix.
+      type: object
+      properties:
+        type:
+          type: string
+          description: The type of matching rule (always 'path-prefix').
+          const: path-prefix
+          enum:
+          - path-prefix
+        hostName:
+          type: string
+          description: 'The host name (domain + subdomains) to match against (e.g., `www.example.com`). This should not include a path or protocol.
+
+            This should match the host of the URL in full.'
+          minLength: 1
+          maxLength: 255
+          example: www.example.com
+        pathPrefix:
+          type: string
+          description: 'The path prefix to match against, e.g. `/shop/pay` will match: - `/shop/pay` - `/shop/pay/` - `/shop/pay/123` - `/shop/pay/more/path` - `/shop/pay?query=string`
+
+            but not: - `/shop` - `/other/path`'
+          minLength: 1
+          maxLength: 2048
+          pattern: ^\/.*
+          example: /shop/pay
+      required:
+      - type
+      - hostName
+      - pathPrefix
+    AcceptorStaticQRCreateRequest:
+      title: Create acceptor static QR request
+      type: object
+      description: Request payload for creating an acceptor static QR resource.
+      properties:
+        acceptorId:
+          type: string
+          format: uuid
+          description: The unique identifier for the acceptor associated with this QR code.
+          example: 987e6543-e21b-12d3-a456-426614174000
+        matchingRule:
+          $ref: '#/components/schemas/AcceptorStaticQRMatchingRule'
+        redirectUrl:
+          type: string
+          description: The URL to which the QR code redirects when scanned from a Wero wallet app. Only HTTPS URLs are allowed.
+          minLength: 1
+          maxLength: 2048
+          example: https://example.com/redirect
+      required:
+      - acceptorId
+      - matchingRule
+      - redirectUrl
+    AcceptorStaticQRMatchingRuleDomain:
+      title: Domain matching rule
+      description: A rule that matches requests based on a specific domain name. All subdomains are included in the match.
+      type: object
+      properties:
+        type:
+          type: string
+          description: The type of matching rule (always 'domain-name').
+          const: domain-name
+          enum:
+          - domain-name
+        domainName:
+          type: string
+          description: 'The domain name to match against, e.g. `example.com` will match: - `https://example.com/some/path` - `https://subdomain.example.com/some/path`'
+          minLength: 1
+          maxLength: 255
+          example: example.com
+      required:
+      - type
+      - domainName
+    AcceptorStaticQRResource:
+      title: Acceptor static QR Resource
+      type: object
+      description: A representation of a registered acceptor static QR resource.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The unique identifier for the acceptor static QR resource.
+          example: 123e4567-e89b-12d3-a456-426614174000
+        acceptorId:
+          type: string
+          format: uuid
+          description: The unique identifier for the acceptor associated with this QR code.
+          example: 987e6543-e21b-12d3-a456-426614174000
+        matchingRule:
+          $ref: '#/components/schemas/AcceptorStaticQRMatchingRule'
+        pending:
+          type: object
+          description: A submission for review of the redirect URL change.
+          required:
+          - submissionId
+          - redirectUrl
+          properties:
+            submissionId:
+              type: string
+              format: uuid
+              description: The unique identifier for the pending submission.
+              example: 456e7890-e12b-34d5-a678-426614174000
+            redirectUrl:
+              type: string
+              description: The new redirect URL submitted for review.
+              minLength: 1
+              maxLength: 2048
+              example: https://example.com/new-redirect
+        published:
+          type: object
+          description: The currently published redirect URL.
+          required:
+          - redirectUrl
+          properties:
+            redirectUrl:
+              type: string
+              description: The URL to which the QR code redirects when scanned from a Wero wallet app.
+              minLength: 1
+              maxLength: 2048
+              example: https://example.com/redirect
+      required:
+      - id
+      - acceptorId
+      - matchingRule
+    ConstraintViolationProblem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type only in the context of the provided endpoint.
+          const: /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          default: Constraint Violation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          default: 400
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+        violations:
+          type: array
+          description: A list of constraint violations.
+          items:
+            type: object
+            required:
+            - field
+            - message
+            properties:
+              field:
+                type: string
+                description: The name of the field that caused the constraint violation.
+              message:
+                type: string
+                description: A technical message that describes the constraint violation, in English.
+              userMessageKey:
+                type: string
+                description: A key that describes the type of constraint violation, useful to report user input validation error. The key can be used to look up a localised message for instance, that can
+                  then be interpolated using the `userMessageValue`.
+                example: constraint.string.min-length
+                oneOf:
+                - type: string
+                  title: Standard constraint violation key
+                  description: 'All known standard constraint violation keys: * **constraint.required**: The field is required. * **constraint.type**: The field must be of the correct type. * **constraint.enum**:
+                    The field must be one of the allowed values. `userMessageValue` contains the list as a string value. * **constraint.const**: The field must be a specific value. `userMessageValue` contains
+                    the value as a string value. * **constraint.number.multiple-of**: The field must be a multiple of a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-inclusive**:
+                    The field must be less than or equal to a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-exclusive**: The field must be less
+                    than a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.minimum-inclusive**: The field must be greater than or equal to a specific number.
+                    `userMessageValue` contains the number as a string value.            * **constraint.number.minimum-exclusive**: The field must be greater than a specific number. `userMessageValue` contains
+                    the number as a string value. * **constraint.string.max-length**: The field must be at most a specific number of characters long. `userMessageValue` contains the number as a string value.
+                    * **constraint.string.min-length**: The field must be at least a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.min-length-not-blank**:
+                    The field must be at least a specific number of characters long and not blank. `userMessageValue` contains the number as a string value. * **constraint.string.max-graphemes**: The field
+                    must be at most a specific number of graphemes long. `userMessageValue` contains the number as a string value. * **constraint.string.pattern**: The field must match a specific pattern.
+                    * **constraint.string.length**: The field must be a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.url**: The field
+                    must be a valid URL. * **constraint.string.url-https**: The field must be a valid HTTPS URL. * **constraint.string.uuid4**: The field must be a valid UUID v4. * **constraint.string.email**:
+                    The field must be a valid email address. * **constraint.string.phone-number**: The field must be a valid phone number. * **constraint.duration.min-seconds**: The field must be at least
+                    a specific number of seconds long. `userMessageValue` contains the number as a string value. * **constraint.duration.max-days**: The field must be at most a specific number of days long.
+                    `userMessageValue` contains the number as a string value. * **constraint.datetime.before**: The field must be before a specific date and time. `userMessageValue` contains the `datetime`
+                    as a timestamp string value. * **constraint.array.min-items**: The field must contain at least a specific number of items. `userMessageValue` contains the number as a string value. *
+                    **constraint.array.max-items**: The field must contain at most a specific number of items. `userMessageValue` contains the number as a string value. * **constraint.array.unique-items**:
+                    The field must contain only unique items. * **constraint.amount.maximum**: The field must be less than or equal to a specific amount. * **constraint.amount.minimum**: The field must
+                    be greater than or equal to a specific amount. * **constraint.currency-supported**: The field must be a supported currency.'
+                  enum:
+                  - constraint.required
+                  - constraint.type
+                  - constraint.enum
+                  - constraint.const
+                  - constraint.number.multiple-of
+                  - constraint.number.maximum-inclusive
+                  - constraint.number.maximum-exclusive
+                  - constraint.number.minimum-inclusive
+                  - constraint.number.minimum-exclusive
+                  - constraint.string.max-length
+                  - constraint.string.min-length
+                  - constraint.string.min-length-not-blank
+                  - constraint.string.max-graphemes
+                  - constraint.string.pattern
+                  - constraint.string.length
+                  - constraint.string.url
+                  - constraint.string.url-https
+                  - constraint.string.uuid4
+                  - constraint.string.email
+                  - constraint.string.phone-number
+                  - constraint.duration.min-seconds
+                  - constraint.duration.max-days
+                  - constraint.datetime.before
+                  - constraint.array.min-items
+                  - constraint.array.max-items
+                  - constraint.array.unique-items
+                  - constraint.amount.maximum
+                  - constraint.amount.minimum
+                  - constraint.currency-supported
+                - type: string
+                  description: Placeholder for a future user message key.
+                  title: Placeholder for future message keys
+                  not:
+                    enum:
+                    - constraint.required
+                    - constraint.type
+                    - constraint.enum
+                    - constraint.const
+                    - constraint.number.multiple-of
+                    - constraint.number.maximum-inclusive
+                    - constraint.number.maximum-exclusive
+                    - constraint.number.minimum-inclusive
+                    - constraint.number.minimum-exclusive
+                    - constraint.string.max-length
+                    - constraint.string.min-length
+                    - constraint.string.min-length-not-blank
+                    - constraint.string.max-graphemes
+                    - constraint.string.pattern
+                    - constraint.string.length
+                    - constraint.string.url
+                    - constraint.string.url-https
+                    - constraint.string.uuid4
+                    - constraint.string.email
+                    - constraint.string.phone-number
+                    - constraint.duration.min-seconds
+                    - constraint.duration.max-days
+                    - constraint.datetime.before
+                    - constraint.array.min-items
+                    - constraint.array.max-items
+                    - constraint.array.unique-items
+                    - constraint.amount.maximum
+                    - constraint.amount.minimum
+                    - constraint.currency-supported
+              userMessageValue:
+                type: string
+                description: A string value that can be used to replace a placeholder in the localised message.
+      required:
+      - type
+      - title
+      - status
+      - violations

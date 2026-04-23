@@ -1,0 +1,222 @@
+openapi: 3.0.0
+info:
+  title: Proxy Indicators API
+  version: 1.0.0
+  description: API specification for proxy-indicators resource
+servers:
+- url: https://api.example.com
+paths:
+  /api/proxy-indicators:
+    servers: []
+    post:
+      summary: List eligible proxy hashes [Consumer PSP or Wallet]
+      x-slo:
+        availability: 99.95
+        latency:
+          p95: 1050
+          p99: 2100
+          max: 7000
+        throughput: N/A
+        severity: N/A
+        status: DRAFT
+      tags:
+      - proxy-indicators
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/RateLimitReset'
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/ProxyIndicators'
+                - $ref: '#/components/schemas/ProxyIndicatorsTruncated'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                MissingExternalConsumerId:
+                  value:
+                    type: /problem/proxy-indicator/psp-missing-external-consumer-id-query-parameter
+                    status: 400
+                    title: Missing required `externalConsumerId` query parameter for the ConsumerPSP access
+                    callId: 00000000000000000000000000000000-0000000000000000
+        '429':
+          $ref: '#/components/responses/errorResponse429'
+      operationId: post-proxy-indicators
+      description: "This endpoint call can serve different functions between wallet and consumer PSP workflows.\n### Using proxy indicators for contact-list discovery [wallet]\nConsumers can discover which\
+        \ contacts in their Wero digital wallet contact list also have Wero digital wallets.\n\nThe process to discover these contacts includes the following steps:\n1. The wallet creates proxy hashes of\
+        \ the phone numbers and of the email addresses from the contact list.\n2. The wallet sends the proxy hashes in a batch to EPI central service's proxy look-up service.\n3. The look-up service responds\
+        \ by indicating which proxy hashes from the batch are eligible to be used for sending money to or requesting money from contacts.\n### Using proxy indicators for proxy-name pre-checks [consumer\
+        \ PSP]\nConsumer PSPs can use this service as a pre-check to determine if a proxy has already been registered before a consumer or wallet entity is created. Displaying this information to the consumer\
+        \ during the enrolment process provides a better user experience than having the enrolment flow fail at the end.\n### Proxy indicators retrieval eligibility\nThe response returns only registered\
+        \ proxy hashes.  Proxy hashes that are sent in the request but are not registered in the EPI proxy look-up database are omitted from the response.\n\nFor security reasons, the number of proxy hashes\
+        \ in a single request is limited.  If the list of requested proxy hashes exceeds the limit, the server will consider only those proxy hashes up to the limit, truncating the rest. The Wero digital\
+        \ wallet can use the `truncated` and `truncatedAfter` properties to inform subsequent calls to the endpoint to check the eligibility of the remaining proxy hashes.\n### Rate limiting\nThis endpoint\
+        \ call is rate limited and permits the look-up of 10,000 unique proxies per year. For consumer PSPs who have authenticated using the consumer PSP authentication method, the `externalConsumerId`\
+        \ query parameter is used for rate-limiting. If there are more than 5000 proxy hashes in the request, the response will contain `truncated=true`, `truncatedAfter=5000` to let the apps know. The\
+        \ yearly period starts when the first request for a consumer is received (not calendar year).\n> \U0001F4D8 Phone numbers of overseas France and of Monaco\nAliases of phone numbers of overseas France\
+        \ and of Monaco, which start with the `+33` international prefix of metropolitan France, are supported by the proxy look-up service. The same proxy is retrieved regardless of whether the alias is\
+        \ looked up or the phone number with the international prefix of the territory concerned is looked up. For more information, see [Phone numbers of overseas France and of Monaco](doc:french-overseas-phone-numbers)"
+      security:
+      - BearerAccessToken: []
+      parameters:
+      - in: query
+        name: externalConsumerId
+        schema:
+          type: string
+        required: false
+        description: External ID of a consumer, provided by the consumer PSP. Uniquely identifies a consumer outside of the EPI context. While validation for this parameter is set to `optional`, consumer
+          PSPs onboarding consumers to EPI must provide their own unique identifier for each consumer.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              examples:
+              - proxies:
+                - proxyHash: uT1CLsQ1AZPd_fUu1MS07IddzTQ4VpNGg08FcADOWrw=
+                - proxyHash: uqf-OQv4EPgDjX7iKDfdj5JfJHvSxB3BQgVLz8QVhe4=
+                - proxyHash: PZGI4MTD8kVdbysQMF8ztCykGY87PLIhrg-1qfxPPrg=
+              properties:
+                proxies:
+                  type: array
+                  description: List of proxy hash strings of contacts in the contact list.
+                  items:
+                    type: object
+                    properties:
+                      proxyHash:
+                        $ref: '#/components/schemas/proxyHash'
+            examples:
+              Example 1:
+                value:
+                  proxies:
+                  - proxyHash: uT1CLsQ1AZPd_fUu1MS07IddzTQ4VpNGg08FcADOWrw=
+                  - proxyHash: uqf-OQv4EPgDjX7iKDfdj5JfJHvSxB3BQgVLz8QVhe4=
+                  - proxyHash: PZGI4MTD8kVdbysQMF8ztCykGY87PLIhrg-1qfxPPrg=
+components:
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type, only in the context of the provided endpoint.
+          default: about:blank
+          example: /some/uri-reference
+          not:
+            enum:
+            - /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          example: some title for the error situation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem, which helps locate the problem and describes how to proceed.
+          example: some description for the error situation
+        instance:
+          type: string
+          format: uri-reference
+          description: A URI reference that identifies the specific occurrence of the problem, for example, by adding a fragment identifier or sub-path to the problem type. Can be used to locate the root
+            of the problem in the source code.
+          example: /some/uri-reference#specific-occurrence-context
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+      required:
+      - type
+      - title
+      - status
+    ProxyIndicatorsTruncated:
+      allOf:
+      - $ref: '#/components/schemas/ProxyIndicators'
+      - type: object
+        properties:
+          truncatedAfter:
+            type: integer
+            description: The Wero digital wallet can use this information in subsequent requests to check the eligibility of the remaining proxy hashes.
+        required:
+        - truncated
+        - truncatedAfter
+      example:
+        indicators:
+        - proxyHash: uT1CLsQ1AZPd_fUu1MS07IddzTQ4VpNGg08FcADOWrw=
+          canBePayer: true
+          pro: true
+        - proxyHash: uqf-OQv4EPgDjX7iKDfdj5JfJHvSxB3BQgVLz8QVhe4=
+          canBePayer: false
+          pro: true
+        expiresAt: '2023-05-03T11:38:31.265914449Z'
+        truncated: true
+        truncatedAfter: 2
+    ProxyIndicators:
+      type: object
+      properties:
+        indicators:
+          type: array
+          description: List of eligible proxy hashes.
+          items:
+            type: object
+            properties:
+              proxyHash:
+                $ref: '#/components/schemas/proxyHash'
+              canBePayer:
+                type: boolean
+                default: true
+                description: Indicates whether the consumer linked to the proxy hash can act as a payer and respond to payment requests.
+              pro:
+                type: boolean
+                default: false
+                description: Indicates whether the payment source linked to the proxy hash is a business account (P2Pro).
+            required:
+            - proxyHash
+            - canBePayer
+            - pro
+        expiresAt:
+          type: string
+          description: 'The time until which the client should cache eligibility information about a proxy hash. Clients should not re-request eligibility information about a proxy hash before its `expiresAt`
+            time has passed.
+
+            This property is DEPRECATED and will be removed.'
+          format: date-time
+        truncated:
+          type: boolean
+          description: Indicates whether the list has been truncated (because the request contained too many proxy hashes). The current limit is 5000 proxy hashes in a request.
+      required:
+      - indicators
+      - truncated
+      example:
+        indicators:
+        - proxyHash: uT1CLsQ1AZPd_fUu1MS07IddzTQ4VpNGg08FcADOWrw=
+          canBePayer: true
+          pro: false
+        - proxyHash: uqf-OQv4EPgDjX7iKDfdj5JfJHvSxB3BQgVLz8QVhe4=
+          canBePayer: false
+          pro: true
+        expiresAt: '2023-05-03T11:38:31.265914449Z'
+        truncated: false
+    proxyHash:
+      title: proxyHash
+      type: string
+      pattern: ^[a-zA-Z0-9\-_=]{44}$
+      minLength: 44
+      maxLength: 44
+      example: PZGI4MTD8kVdbysQMF8ztCykGY87PLIhrg-1qfxPPrg=
+      description: Hashed proxy of a payee or payer.

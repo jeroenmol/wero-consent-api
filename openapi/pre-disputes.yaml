@@ -1,0 +1,1150 @@
+openapi: 3.0.0
+info:
+  title: Pre Disputes API
+  version: 1.0.0
+  description: API specification for pre-disputes resource
+servers:
+- url: https://api.example.com
+paths:
+  /api/pre-disputes:
+    servers: []
+    post:
+      tags:
+      - disputes
+      operationId: post-predispute
+      summary: Initiate a pre-dispute [Wallet, Consumer PSP]
+      description: 'Consumers can use this endpoint call to initiate a pre-dispute.
+
+        Only authenticated consumers or consumer PSPs acting on behalf of a consumer can call this endpoint.
+
+        Exactly one of `consentId` or `captureId` MUST be provided. Providing both or neither will result in a 400 Bad Request response.
+
+        Note: EPI recommends using `captureId`. The `consentId` option is only supported for `SingleImmediate` payments and may not work for other payment types.
+
+        For more information, see [dispute management](doc:dispute-management).
+
+        ## Scope
+
+        The `dispute:management` scope is required to access this route.'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiatePreDisputeRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/PreDisputeResource'
+              example:
+                id: 48664128-f3de-4887-bf14-e8848477dcf5
+                shortId: 240801-CN2RL8YDC9
+                isEscalatable: false
+                consumer:
+                  id: 5a4bd360-582f-4c36-beb5-597428bb1ba8
+                  pspId: 00000000-0000-0000-0000-000000009004
+                  name:
+                    firstName: John
+                    lastName: Doe
+                actionRequiredFrom: NONE
+                acceptor:
+                  externalId: some-acceptor-id
+                  pspId: 00000000-0000-0000-0000-000000007000
+                  name: Amazon
+                  mcc: '1234'
+                reason: GoodsNotAsDescribed
+                createdAt: '2024-04-12T17:57:10.459Z'
+                status: Initiated
+                _links:
+                  self:
+                    href: https://api.epi-services.eu/api/pre-disputes/48664128-f3de-4887-bf14-e8848477dcf5
+                  consent:
+                    href: https://api.epi-services.eu/api/consents/865d5b24-a887-4381-a45c-3688e5ef90e8
+                authorisations:
+                - amount:
+                    euroCents: 1999
+                consent:
+                  id: 865d5b24-a887-4381-a45c-3688e5ef90e8
+                  orderReferenceId: '2206600275931757'
+                  billingAddress:
+                    recipientName: EPI Company
+                    line1: De Lignestraat 13
+                    city: Brussels
+                    postalCode: '1000'
+                    countryCode: BE
+                  shippingAddress:
+                    recipientName: "Mindspace M\xFCnzstra\xDFe"
+                    line1: "M\xFCnzstra\xDFe 12"
+                    city: Berlin
+                    postalCode: '10178'
+                    countryCode: DE
+                messageHistory:
+                  messages:
+                  - content: Goods not good enough
+                    author: Consumer
+                    sentAt: '2024-04-12T17:57:10.459Z'
+                    messageType: Initiated
+                    _links:
+                      attachments:
+                      - href: https://api.epi-services.eu/api/pre-disputes/48664128-f3de-4887-bf14-e8848477dcf5/download/some-file.png
+                        name: some-file.png
+                      - href: https://api.epi-services.eu/api/pre-disputes/48664128-f3de-4887-bf14-e8848477dcf5/download/some-other-file.png
+                        name: some-other-file.png
+        '400':
+          description: The caller supplied data in the format that is not expected by the service.
+          $ref: '#/components/responses/errorResponse400'
+        '403':
+          description: The caller is not authorised to retrieve pre-dispute information.
+          $ref: '#/components/responses/errorResponse403'
+        '409':
+          description: The caller supplied data that violates data integrity.
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/Problem'
+                discriminator:
+                  propertyName: type
+                  mapping:
+                    /problem/pre-dispute/already-disputed: '#/components/schemas/Problem'
+              examples:
+                /problem/pre-dispute/already-disputed:
+                  value:
+                    type: /problem/pre-dispute/already-disputed
+                    status: 409
+                    title: Conflict
+                    callId: 00000000000000000000000000000000-0000000000000000
+        '422':
+          description: The caller supplied data that violates data integrity.
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/Problem'
+                discriminator:
+                  propertyName: type
+                  mapping:
+                    /problem/pre-dispute/payment-request-not-found: '#/components/schemas/Problem'
+                    /problem/pre-dispute/payment-request-not-captured: '#/components/schemas/Problem'
+                    /problem/pre-dispute/payment-too-old: '#/components/schemas/Problem'
+                    /problem/pre-dispute/payment-amount: '#/components/schemas/Problem'
+                    /problem/pre-dispute/initiation-unavailable: '#/components/schemas/Problem'
+              examples:
+                /problem/pre-dispute/payment-request-not-captured:
+                  value:
+                    type: /problem/pre-dispute/payment-request-not-captured
+                    status: 422
+                    title: Unprocessable Entity
+                    callId: 00000000000000000000000000000000-0000000000000000
+        '500':
+          description: Any problem that is not handled or unexpected, for example, a database connection loss.
+          $ref: '#/components/responses/errorResponse500'
+        '502':
+          description: Bad Gateway - An upstream service could not be reached or did not respond in time.
+          $ref: '#/components/responses/errorResponse502'
+      security:
+      - BearerAccessToken: []
+    get:
+      operationId: get-predisputes
+      summary: List pre-disputes [Wallet, Consumer PSP, Acceptor PSP]
+      description: 'This endpoint call retrieves a list of the pre-dispute resources. If the caller is an acceptor, the endpoint returns only the pre-disputes that are related to the acceptor. If the caller
+        is a consumer, the endpoint returns only the pre-disputes that are related to the consumer.
+
+
+        An acceptor PSP must be authenticated on behalf of the acceptor.
+
+        A consumer PSP must be authenticated on behalf of the consumer.
+
+        For more information, see [dispute management](doc:dispute-management).
+
+
+        ## Scope
+
+        The `dispute:management` scope is required to access this route.'
+      security:
+      - BearerAccessToken: []
+      tags:
+      - disputes
+      parameters:
+      - name: id
+        in: query
+        description: Filter by the ID of the pre-dispute. The filter is an exact match and accepts a single value.
+        required: false
+        schema:
+          type: string
+          format: uuid
+          example: 229eb8a2-b0a0-4f5f-b07e-31fcfd80a429
+      - name: shortId
+        in: query
+        description: Filter by dispute short ID. The filter is an exact match and accepts a single value.
+        required: false
+        schema:
+          type: string
+          example: 250103-ABCE1243
+      - name: consentId
+        in: query
+        description: Filter by the consent ID of the pre-dispute. The filter is an exact match and accepts a single value.
+        required: false
+        schema:
+          type: string
+          format: uuid
+          example: 229eb8a2-b0a0-4f5f-b07e-31fcfd80a429
+      - name: captureId
+        in: query
+        description: Filter by the capture ID of the pre-dispute. The filter is an exact match and accepts a single value.
+        required: false
+        schema:
+          type: string
+          format: uuid
+          example: 229eb8a2-b0a0-4f5f-b07e-31fcfd80a429
+      - name: externalShopId
+        in: query
+        description: Filter by the external shop ID. The filter is an exact match and accepts a single value. The filter is applied to the `shopId` provided in the consent and not the one registered on
+          EPI side.
+        required: false
+        schema:
+          type: string
+          example: decathlon-paris
+      - name: consumerId
+        in: query
+        description: Filter by the consumer ID of the pre-dispute. The filter is an exact match and accepts a single value.
+        required: false
+        schema:
+          type: string
+          format: uuid
+          example: 229eb8a2-b0a0-4f5f-b07e-31fcfd80a429
+      - name: status
+        $ref: '#/components/parameters/PreDisputeStatusInQuery'
+        example: Initiated
+      - name: reason
+        $ref: '#/components/parameters/PreDisputeReasonInQuery'
+        example: GoodsNotAsDescribed
+      - name: actionRequiredFrom
+        in: query
+        schema:
+          $ref: '#/components/schemas/ActionRequiredFrom'
+        description: Filter by the party that is required to take action to make the pre-dispute move forward
+      - name: isOpen
+        in: query
+        description: Filter by the state of the pre-dispute.
+        required: false
+        schema:
+          type: boolean
+          example: true
+      - name: sort
+        in: query
+        description: 'Sort the result by the given field.
+
+          Accepts multiple values. e.g. `sort=field1:desc,field2:asc`
+
+          The following fields are supported: - createdAt - updatedAt'
+        required: false
+        schema:
+          type: string
+          example: field1:desc,field2:asc
+          default: createdAt:desc
+      - name: page
+        in: query
+        description: The page number to retrieve. If not specified, the first page is returned.
+        required: false
+        schema:
+          type: integer
+      - name: size
+        in: query
+        description: The number of results per page.  If not specified, the default page size is 50. The maximum page size is 100. If the requested page size is greater than 100, then the page size is set
+          to 100. The minimum page size is 1. If the requested page size is smaller than 1, then the page size is set to 1.
+        required: false
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                type: object
+                properties:
+                  _links:
+                    $ref: '#/components/schemas/PagedCollectionResourceLinks'
+                  _embedded:
+                    type: object
+                    properties:
+                      preDisputes:
+                        type: array
+                        items:
+                          allOf:
+                          - $ref: '#/components/schemas/DisputeProperties'
+                          - type: object
+                            properties:
+                              reason:
+                                $ref: '#/components/schemas/PreDisputeReason'
+                              escalatableAt:
+                                type: string
+                                format: date-time
+                                description: The date at which the consumer can escalate the pre-dispute into a chargeback.
+                              closedAt:
+                                type: string
+                                format: date-time
+                                description: The date on which a pre-dispute was closed.
+                              actionRequiredFrom:
+                                $ref: '#/components/schemas/ActionRequiredFrom'
+                          required:
+                          - id
+                          - shortId
+                          - consumer
+                          - acceptor
+                          - authorisations
+                          - consent
+                          - reason
+                          - createdAt
+                          - status
+                          - actionRequiredFrom
+                          - _links
+                      availableStatuses:
+                        type: array
+                        description: The list of statuses that can be used to filter pre-dispute.
+                        items:
+                          $ref: '#/components/schemas/DisputeStatus'
+                  page:
+                    $ref: '#/components/schemas/page'
+              example:
+                _links:
+                  self:
+                    href: https://api.epi-services.eu/api/pre-disputes?page=0&size=10
+                  first:
+                    href: https://api.epi-services.eu/api/pre-disputes?page=0&size=10
+                  next:
+                    href: https://api.epi-services.eu/api/pre-disputes?page=1&size=10
+                  last:
+                    href: https://api.epi-services.eu/api/pre-disputes?page=1&size=10
+                _embedded:
+                  availableStatuses:
+                  - Initiated
+                  - Accepted
+                  - ClosedByConsumer
+                  preDisputes:
+                  - id: 48664128-f3de-4887-bf14-e8848477dcf5
+                    shortId: 240801-CN2RL8YDC9
+                    actionRequiredFrom: NONE
+                    consumer:
+                      id: 5a4bd360-582f-4c36-beb5-597428bb1ba8
+                      pspId: 00000000-0000-0000-0000-000000009004
+                      name:
+                        firstName: John
+                        lastName: Doe
+                    reason: GoodsNotAsDescribed
+                    createdAt: '2024-04-12T17:57:10.459Z'
+                    status: Initiated
+                    closedAt: '2024-04-15T10:00:00Z'
+                    _links:
+                      self:
+                        href: https://api.epi-services.eu/api/pre-disputes/48664128-f3de-4887-bf14-e8848477dcf5
+                      consent:
+                        href: https://api.epi-services.eu/api/consents/865d5b24-a887-4381-a45c-3688e5ef90e8
+                    acceptor:
+                      externalId: some-acceptor-id
+                      pspId: 00000000-0000-0000-0000-000000007000
+                      name: Amazon
+                      mcc: '1234'
+                    authorisations:
+                    - amount:
+                        euroCents: 1999
+                    consent:
+                      id: 059ef038-bf87-4116-8ad2-f507021fb30f
+                      orderReferenceId: '2206600275931757'
+                      billingAddress:
+                        recipientName: EPI Company
+                        line1: De Lignestraat 13
+                        city: Brussels
+                        postalCode: '1000'
+                        countryCode: BE
+                      shippingAddress:
+                        recipientName: "Mindspace M\xFCnzstra\xDFe"
+                        line1: "M\xFCnzstra\xDFe 12"
+                        city: Berlin
+                        postalCode: '10178'
+                        countryCode: DE
+                page:
+                  size: 1
+                  requestedPageSize: 10
+                  totalElements: 1
+                  number: 0
+                  totalPages: 2
+                  limitReached: false
+        '400':
+          description: The caller supplied data in the format which is not expected by the service.
+          $ref: '#/components/responses/errorResponse400'
+        '403':
+          description: The caller is not authorised to retrieve pre-dispute information.
+          $ref: '#/components/responses/errorResponse403'
+        '500':
+          description: Any problem that is not handled or unexpected, for example, a database connection loss.
+          $ref: '#/components/responses/errorResponse500'
+components:
+  schemas:
+    linkWithRequiredName:
+      type: object
+      properties:
+        href:
+          type: string
+          format: uri
+        name:
+          type: string
+      required:
+      - href
+      - name
+    DisputeStatus:
+      type: string
+      description: Current status of the pre-dispute.
+      oneOf:
+      - const: Initiated
+        title: Initiated
+        default: Initiated
+        description: Consumer initiated a new pre-dispute.
+      - const: Accepted
+        title: Accepted
+        default: Accepted
+        description: Acceptor accepted the pre-dispute.
+      - const: ClosedByConsumer
+        title: ClosedByConsumer
+        default: ClosedByConsumer
+        description: Consumer closed the pre-dispute.
+      - const: FullyRefunded
+        title: FullyRefunded
+        default: FullyRefunded
+        description: The pre-dispute was fully refunded and therefore closed by EPI.
+      - const: RejectedByAcceptor
+        title: RejectedByAcceptor
+        default: RejectedByAcceptor
+        description: Acceptor rejected the pre-dispute.
+      - const: OfferMade
+        title: OfferMade
+        default: OfferMade
+        description: Acceptor made an offer that is still ongoing.
+      - const: AutoClosed
+        title: AutoClosed
+        default: AutoClosed
+        description: The pre-dispute was automatically closed by EPI because of inactivity
+      - const: OfferRejected
+        title: OfferRejected
+        default: OfferRejected
+        description: Consumer rejected the offer.
+      - const: OfferAccepted
+        title: OfferAccepted
+        default: OfferAccepted
+        description: Consumer accepted the offer.
+      - const: EscalatedIntoChargeback
+        title: EscalatedIntoChargeback
+        default: EscalatedIntoChargeback
+        description: Consumer escalated the pre-dispute into chargeback.
+      - const: ChargebackRequested
+        title: ChargebackRequested
+        default: ChargebackRequested
+        description: A chargeback's been requested.
+      - const: ChargebackApproved
+        title: ChargebackApproved
+        default: ChargebackApproved
+        description: The consumer PSP has approved the chargeback request and executed it against the acceptor PSP.
+      - const: ChargebackRejected
+        title: ChargebackRejected
+        default: ChargebackRejected
+        description: The consumer PSP has declined the chargeback request from the consumer. The dispute is closed.
+      - const: ChargebackRepresented
+        title: ChargebackRepresented
+        default: ChargebackRepresented
+        description: The acceptor PSP has disagreed with the chargeback and represents it.
+      - const: ChargebackAccepted
+        title: ChargebackAccepted
+        default: ChargebackAccepted
+        description: The acceptor PSP has accepted the chargeback. The dispute is closed.
+      - const: RepresentmentAccepted
+        title: RepresentmentAccepted
+        default: RepresentmentAccepted
+        description: The consumer PSP has agreed with the acceptor PSP not to have a chargeback. The dispute is closed.
+      - const: PreArbitrationStarted
+        title: PreArbitrationStarted
+        default: PreArbitrationStarted
+        description: The consumer PSP has rejected the representment, which initiates the pre-arbitration process.
+      - const: PreArbitrationWithdrawn
+        title: PreArbitrationWithdrawn
+        default: PreArbitrationWithdrawn
+        description: The consumer PSP has withdrawn the chargeback. The dispute is closed.
+      - const: PreArbitrationAccepted
+        title: PreArbitrationAccepted
+        default: PreArbitrationAccepted
+        description: The acceptor PSP has accepted the chargeback during the pre-arbitration. The dispute is closed.
+      - const: PreArbitrationDeclined
+        title: PreArbitrationDeclined
+        default: PreArbitrationDeclined
+        description: The acceptor PSP has declined the pre-arbitration and therefore created the option for the consumer PSP to request arbitration by EPI.
+      - const: PreArbitrationDeclinementAccepted
+        title: PreArbitrationDeclinementAccepted
+        default: PreArbitrationDeclinementAccepted
+        description: The consumer PSP has accepted that pre-arbitration has been declined.
+      - const: EscalatedToArbitration
+        title: EscalatedToArbitration
+        default: EscalatedToArbitration
+        description: The consumer PSP escalated to arbitration through EPI
+      - const: ArbitrationWonByConsumer
+        title: ArbitrationWonByConsumer
+        default: ArbitrationWonByConsumer
+        description: The arbitration was decided in favor of the consumer.
+      - const: ArbitrationWonByAcceptor
+        title: ArbitrationWonByAcceptor
+        default: ArbitrationWonByAcceptor
+        description: The arbitration was decided in favor of the acceptor.
+      - type: string
+        not:
+          enum:
+          - Initiated
+          - Accepted
+          - ClosedByConsumer
+          - FullyRefunded
+          - ClosedByEpi
+          - AutoClosed
+          - RejectedByAcceptor
+          - OfferMade
+          - OfferRejected
+          - OfferAccepted
+          - EscalatedIntoChargeback
+          - ChargebackRequested
+          - ChargebackApproved
+          - ChargebackRejected
+          - ChargebackRepresented
+          - ChargebackAccepted
+          - RepresentmentAccepted
+          - PreArbitrationStarted
+          - PreArbitrationWithdrawn
+          - PreArbitrationAccepted
+          - PreArbitrationDeclined
+          - PreArbitrationDeclinementAccepted
+          - EscalatedToArbitration
+          - ArbitrationWonByConsumer
+          - ArbitrationWonByAcceptor
+          description: Placeholder for a future reason, to be defined.
+          title: Any string
+    ActionRequiredFrom:
+      type: string
+      description: The party that is required to take action to make the pre-dispute move forward.
+      oneOf:
+      - const: CONSUMER
+        title: The consumer is required to take action.
+      - const: ACCEPTOR
+        title: The acceptor is required to take action.
+      - const: NONE
+        title: No action is required.
+      example: CONSUMER
+    PreDisputeMessageResource:
+      type: object
+      properties:
+        content:
+          type: string
+          description: The content of the message.
+        author:
+          type: string
+          enum:
+          - Consumer
+          - Acceptor
+          - EPI
+          example: Consumer
+          description: Indicates which party sent the message.
+        sentAt:
+          type: string
+          format: date-time
+          description: The date and time at which the message was sent.
+        _links:
+          type: object
+          description: HAL links to attached files.
+          properties:
+            attachments:
+              type: array
+              items:
+                $ref: '#/components/schemas/linkWithRequiredName'
+        messageType:
+          type: string
+          description: The type of the message.
+          enum:
+          - Message
+          - Initiated
+          - AcceptedFullRefund
+          - FullyRefunded
+          - AutoClosed
+          - AcceptedResendGoods
+          - AcceptedPartialRefund
+          - Closed
+          - RejectedByAcceptor
+          - OfferMade
+          - OfferRejected
+          - OfferAccepted
+          - EscalatedIntoChargeback
+      example:
+        content: I would like to return the goods and get a full refund.
+        messageType: Initiated
+        author: Consumer
+    MerchantCategoryCode:
+      type: string
+      maxLength: 4
+      minLength: 4
+      pattern: ^\d{4}$
+      description: ISO 18245:2023 defines a merchant category code (MCC) as "a code used to classify the business entity by type of activity in which it is engaged, to facilitate the evaluation of various
+        risks undertaken by the entity and to better identify its transaction patterns and characteristics." The MCC is a four-digit number that is assigned to a business by credit card companies (for example,
+        MasterCard or VISA) when the business first starts to accept one of these cards as a form of payment.
+      example: '5812'
+    PagedCollectionResourceLinks:
+      type: object
+      properties:
+        self:
+          $ref: '#/components/schemas/link'
+        first:
+          $ref: '#/components/schemas/link'
+        last:
+          $ref: '#/components/schemas/link'
+        prev:
+          $ref: '#/components/schemas/link'
+        next:
+          $ref: '#/components/schemas/link'
+      required:
+      - self
+      - first
+      - last
+    ChargebackActivitySummaryResource:
+      type: object
+      properties:
+        entries:
+          type: array
+          description: A condensed log of activities that have happened during the chargeback phase.
+          items:
+            type: object
+            properties:
+              occurredAt:
+                type: string
+                format: date-time
+                description: The date and time at which the activity occurred.
+              activity:
+                type: string
+                description: The type of the activity.
+                enum:
+                - ChargebackRequested
+                - ChargebackApproved
+                - ChargebackRejected
+                - ChargebackRepresented
+                - ChargebackAccepted
+                - RepresentmentAccepted
+                - PreArbitrationStarted
+                - PreArbitrationWithdrawn
+                - PreArbitrationAccepted
+                - PreArbitrationDeclinementAccepted
+                - ArbitrationWonByConsumer
+                - ArbitrationWonByAcceptor
+              message:
+                type: string
+                description: An optional message completing the activity.
+            required:
+            - occurredAt
+            - activity
+    DisputeConsumerResource:
+      type: object
+      required:
+      - id
+      - pspId
+      properties:
+        id:
+          type: string
+          format: UUID
+          description: The ID of the consumer.
+        pspId:
+          type: string
+          description: The ID of the consumer PSP.
+        name:
+          type: object
+          required:
+          - firstName
+          - lastName
+          properties:
+            firstName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The first name of the consumer, as is known to the consumer PSP.
+            middleNames:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: One or more middle names of the consumer, as is known to the consumer PSP.
+            lastName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: The last name of the consumer, as is known to the consumer PSP.
+    DisputeAddress:
+      type: object
+      title: Address
+      required:
+      - recipientName
+      - line1
+      - city
+      - postalCode
+      - countryCode
+      properties:
+        recipientName:
+          type: string
+          minLength: 1
+          maxLength: 128
+        line1:
+          type: string
+          minLength: 1
+          maxLength: 300
+        line2:
+          type: string
+          minLength: 1
+          maxLength: 300
+        city:
+          type: string
+          minLength: 1
+          maxLength: 64
+        postalCode:
+          type: string
+          minLength: 1
+          maxLength: 32
+        state:
+          type: string
+          minLength: 1
+          maxLength: 300
+        countryCode:
+          type: string
+    Money:
+      title: Money
+      type: object
+      properties:
+        euroCents:
+          type: integer
+          description: 'The minimum `euroCents` value is `1`. `euroCents: 100` represents one euro.'
+      description: 'Amounts of money in the API are represented as objects with a single property that describes both the currency (for example, euro) and the unit (which is usually the minor unit of the
+        currency, for example, cents).
+
+
+        Currently, the only supported representation is euroCents, as shown in the example.
+
+
+        Other currencies will be added as needed.'
+      examples:
+      - euroCents: 4900
+    InitiatePreDisputeRequest:
+      type: object
+      description: Request to initiate a pre-dispute. The initiation can be done using either a `consentId` or a `captureId`. Providing either both or neither will result in a 400 Bad Request response.
+      properties:
+        reason:
+          $ref: '#/components/schemas/PreDisputeReason'
+        captureId:
+          type: string
+          format: uuid
+          description: The ID of the capture that is disputed. Preferred option.
+        consentId:
+          type: string
+          format: uuid
+          description: The ID of the consent that is disputed. Supported only for `SingleImmediate` payments.
+        message:
+          type: string
+          minLength: 1
+          description: The consumer must provide information to explain the reasons behind the creation of the pre-dispute.
+          maxLength: 2000
+      required:
+      - reason
+      - message
+    ConstraintViolationProblem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type only in the context of the provided endpoint.
+          const: /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          default: Constraint Violation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          default: 400
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+        violations:
+          type: array
+          description: A list of constraint violations.
+          items:
+            type: object
+            required:
+            - field
+            - message
+            properties:
+              field:
+                type: string
+                description: The name of the field that caused the constraint violation.
+              message:
+                type: string
+                description: A technical message that describes the constraint violation, in English.
+              userMessageKey:
+                type: string
+                description: A key that describes the type of constraint violation, useful to report user input validation error. The key can be used to look up a localised message for instance, that can
+                  then be interpolated using the `userMessageValue`.
+                example: constraint.string.min-length
+                oneOf:
+                - type: string
+                  title: Standard constraint violation key
+                  description: 'All known standard constraint violation keys: * **constraint.required**: The field is required. * **constraint.type**: The field must be of the correct type. * **constraint.enum**:
+                    The field must be one of the allowed values. `userMessageValue` contains the list as a string value. * **constraint.const**: The field must be a specific value. `userMessageValue` contains
+                    the value as a string value. * **constraint.number.multiple-of**: The field must be a multiple of a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-inclusive**:
+                    The field must be less than or equal to a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-exclusive**: The field must be less
+                    than a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.minimum-inclusive**: The field must be greater than or equal to a specific number.
+                    `userMessageValue` contains the number as a string value.            * **constraint.number.minimum-exclusive**: The field must be greater than a specific number. `userMessageValue` contains
+                    the number as a string value. * **constraint.string.max-length**: The field must be at most a specific number of characters long. `userMessageValue` contains the number as a string value.
+                    * **constraint.string.min-length**: The field must be at least a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.min-length-not-blank**:
+                    The field must be at least a specific number of characters long and not blank. `userMessageValue` contains the number as a string value. * **constraint.string.max-graphemes**: The field
+                    must be at most a specific number of graphemes long. `userMessageValue` contains the number as a string value. * **constraint.string.pattern**: The field must match a specific pattern.
+                    * **constraint.string.length**: The field must be a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.url**: The field
+                    must be a valid URL. * **constraint.string.url-https**: The field must be a valid HTTPS URL. * **constraint.string.uuid4**: The field must be a valid UUID v4. * **constraint.string.email**:
+                    The field must be a valid email address. * **constraint.string.phone-number**: The field must be a valid phone number. * **constraint.duration.min-seconds**: The field must be at least
+                    a specific number of seconds long. `userMessageValue` contains the number as a string value. * **constraint.duration.max-days**: The field must be at most a specific number of days long.
+                    `userMessageValue` contains the number as a string value. * **constraint.datetime.before**: The field must be before a specific date and time. `userMessageValue` contains the `datetime`
+                    as a timestamp string value. * **constraint.array.min-items**: The field must contain at least a specific number of items. `userMessageValue` contains the number as a string value. *
+                    **constraint.array.max-items**: The field must contain at most a specific number of items. `userMessageValue` contains the number as a string value. * **constraint.array.unique-items**:
+                    The field must contain only unique items. * **constraint.amount.maximum**: The field must be less than or equal to a specific amount. * **constraint.amount.minimum**: The field must
+                    be greater than or equal to a specific amount. * **constraint.currency-supported**: The field must be a supported currency.'
+                  enum:
+                  - constraint.required
+                  - constraint.type
+                  - constraint.enum
+                  - constraint.const
+                  - constraint.number.multiple-of
+                  - constraint.number.maximum-inclusive
+                  - constraint.number.maximum-exclusive
+                  - constraint.number.minimum-inclusive
+                  - constraint.number.minimum-exclusive
+                  - constraint.string.max-length
+                  - constraint.string.min-length
+                  - constraint.string.min-length-not-blank
+                  - constraint.string.max-graphemes
+                  - constraint.string.pattern
+                  - constraint.string.length
+                  - constraint.string.url
+                  - constraint.string.url-https
+                  - constraint.string.uuid4
+                  - constraint.string.email
+                  - constraint.string.phone-number
+                  - constraint.duration.min-seconds
+                  - constraint.duration.max-days
+                  - constraint.datetime.before
+                  - constraint.array.min-items
+                  - constraint.array.max-items
+                  - constraint.array.unique-items
+                  - constraint.amount.maximum
+                  - constraint.amount.minimum
+                  - constraint.currency-supported
+                - type: string
+                  description: Placeholder for a future user message key.
+                  title: Placeholder for future message keys
+                  not:
+                    enum:
+                    - constraint.required
+                    - constraint.type
+                    - constraint.enum
+                    - constraint.const
+                    - constraint.number.multiple-of
+                    - constraint.number.maximum-inclusive
+                    - constraint.number.maximum-exclusive
+                    - constraint.number.minimum-inclusive
+                    - constraint.number.minimum-exclusive
+                    - constraint.string.max-length
+                    - constraint.string.min-length
+                    - constraint.string.min-length-not-blank
+                    - constraint.string.max-graphemes
+                    - constraint.string.pattern
+                    - constraint.string.length
+                    - constraint.string.url
+                    - constraint.string.url-https
+                    - constraint.string.uuid4
+                    - constraint.string.email
+                    - constraint.string.phone-number
+                    - constraint.duration.min-seconds
+                    - constraint.duration.max-days
+                    - constraint.datetime.before
+                    - constraint.array.min-items
+                    - constraint.array.max-items
+                    - constraint.array.unique-items
+                    - constraint.amount.maximum
+                    - constraint.amount.minimum
+                    - constraint.currency-supported
+              userMessageValue:
+                type: string
+                description: A string value that can be used to replace a placeholder in the localised message.
+      required:
+      - type
+      - title
+      - status
+      - violations
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type, only in the context of the provided endpoint.
+          default: about:blank
+          example: /some/uri-reference
+          not:
+            enum:
+            - /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          example: some title for the error situation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem, which helps locate the problem and describes how to proceed.
+          example: some description for the error situation
+        instance:
+          type: string
+          format: uri-reference
+          description: A URI reference that identifies the specific occurrence of the problem, for example, by adding a fragment identifier or sub-path to the problem type. Can be used to locate the root
+            of the problem in the source code.
+          example: /some/uri-reference#specific-occurrence-context
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+      required:
+      - type
+      - title
+      - status
+    page:
+      type: object
+      examples:
+      - size: 1
+        totalElements: 1
+        totalPages: 1
+        number: 0
+        requestedPageSize: 10
+        limitReached: false
+      properties:
+        size:
+          type: integer
+          description: The number of elements on the page.
+        totalElements:
+          type: integer
+          description: The total number of elements available with the query.
+        totalPages:
+          type: integer
+          description: The total number of pages available, using the requested page size.
+        number:
+          type: integer
+          description: The number of the current page. Page numbers start at `0` and continue to the total number of pages.
+        requestedPageSize:
+          type: integer
+          description: The requested page size. The value of "size" might differ for the last page if the last page is not full.
+        limitReached:
+          type: boolean
+          description: If `true`, an internal limit when retrieving results was exceeded. Not all elements are returned.
+      description: A paginated resource is a HAL resource. The resource contains the page object, which describes the provided subset of data. The data is provided as an embedded collection resource. The
+        name of the collection depends on the endpoint. HAL links are also provided, for navigation.
+      title: Structure of a paginated response
+      required:
+      - size
+      - totalElements
+      - totalPages
+      - number
+      - requestedPageSize
+      - limitReached
+    AcceptorResource:
+      type: object
+      required:
+      - externalId
+      - pspId
+      - name
+      properties:
+        externalId:
+          type: string
+          description: The external ID of the acceptor.
+        pspId:
+          type: string
+          description: The ID of the acceptor PSP.
+        name:
+          type: string
+          description: The name of the acceptor.
+        mcc:
+          $ref: '#/components/schemas/MerchantCategoryCode'
+          description: 'The merchant category code (MCC) of the acceptor. See ISO 18245:2023 for more information on available merchant category codes.
+
+            '
+    DisputeProperties:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The dispute ID
+        shortId:
+          type: string
+          description: A human-readable dispute ID.
+        createdAt:
+          type: string
+          format: date-time
+          description: The date when the dispute was created.
+        status:
+          $ref: '#/components/schemas/DisputeStatus'
+        acceptor:
+          $ref: '#/components/schemas/AcceptorResource'
+        authorisations:
+          type: array
+          description: The list of authorised amounts. This property is now deprecated and will be removed.  It will contain a single entry which is the captured amount.
+          items:
+            $ref: '#/components/schemas/AuthorisationResource'
+        capture:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: The capture ID.
+            amount:
+              $ref: '#/components/schemas/Money'
+        consent:
+          $ref: '#/components/schemas/Consent'
+        consumer:
+          $ref: '#/components/schemas/DisputeConsumerResource'
+        _links:
+          type: object
+          description: HAL links to related resources.
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+            consent:
+              $ref: '#/components/schemas/link'
+    AuthorisationResource:
+      type: object
+      properties:
+        amount:
+          $ref: '#/components/schemas/Money'
+    Consent:
+      type: object
+      required:
+      - id
+      properties:
+        id:
+          type: string
+          format: UUID
+          description: The ID of consent.
+        orderReferenceId:
+          type: string
+          description: The ID of the order.
+        billingAddress:
+          $ref: '#/components/schemas/DisputeAddress'
+          description: The billing address.
+        shippingAddress:
+          $ref: '#/components/schemas/DisputeAddress'
+          description: The shipping address.
+    link:
+      type: object
+      properties:
+        href:
+          type: string
+          format: uri
+        name:
+          type: string
+      required:
+      - href
+    PreDisputeResource:
+      allOf:
+      - $ref: '#/components/schemas/DisputeProperties'
+      - type: object
+        properties:
+          reason:
+            $ref: '#/components/schemas/PreDisputeReason'
+          actionRequiredFrom:
+            $ref: '#/components/schemas/ActionRequiredFrom'
+          isEscalatable:
+            type: boolean
+            description: Indicates whether the pre-dispute can be escalated into a chargeback.
+          escalatableAt:
+            type: string
+            format: date-time
+            description: The date at which the consumer can escalate the pre-dispute into a chargeback.
+          isClosed:
+            type: boolean
+            description: Indicates whether the pre-dispute is closed or not.
+          messageHistory:
+            $ref: '#/components/schemas/PreDisputeMessageHistoryResource'
+          chargebackActivitySummary:
+            $ref: '#/components/schemas/ChargebackActivitySummaryResource'
+          _links:
+            type: object
+            description: HAL links to related resources.
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+              consent:
+                $ref: '#/components/schemas/link'
+      required:
+      - id
+      - shortId
+      - acceptor
+      - consumer
+      - consent
+      - reason
+      - createdAt
+      - status
+      - isEscalatable
+      - messageHistory
+      - authorisations
+      - actionRequiredFrom
+      - _links
+    PreDisputeReason:
+      type: string
+      description: The reason for the dispute.
+      oneOf:
+      - const: GoodsNotReceived
+        title: Goods not received
+        default: GoodsNotReceived
+      - const: GoodsNotAsDescribed
+        title: Goods not as described
+        default: GoodsNotAsDescribed
+      - const: RefundNotReceived
+        title: Refund not received
+        default: RefundNotReceived
+      - const: BillingProblem
+        title: Billing problem
+        default: BillingProblem
+      - const: UnknownTransaction
+        title: I don't recognize this transaction
+        default: UnknownTransaction
+      - type: string
+        not:
+          enum:
+          - GoodsNotReceived
+          - GoodsNotAsDescribed
+          - RefundNotReceived
+          - BillingProblem
+          - UnknownTransaction
+        description: Placeholder for a future reason, to be defined.
+        title: Any String
+    PreDisputeMessageHistoryResource:
+      type: object
+      properties:
+        messages:
+          type: array
+          description: The list of messages describing the history of the pre-dispute.
+          items:
+            $ref: '#/components/schemas/PreDisputeMessageResource'

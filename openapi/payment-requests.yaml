@@ -1,0 +1,1210 @@
+openapi: 3.0.0
+info:
+  title: Payment Requests API
+  version: 1.0.0
+  description: API specification for payment-requests resource
+servers:
+- url: https://api.example.com
+paths:
+  /api/payment-requests:
+    servers: []
+    post:
+      tags:
+      - payment-requests
+      x-slo:
+        availability: 99.95
+        latency:
+          p95: 2500
+          p99: 3500
+          max: 10000
+        throughput: N/A
+        severity: SEV 1
+        status: DRAFT
+        notes: "- This API consists of multiple internal calls, including a call to Consumer PSPs to `authorise` the payment. \n- The target latency SLOs for this endpoint cannot currently be met, since\
+          \ the target SLOs for the `authorisation` endpoint cannot be met by all Consumer PSPs. \n- Therefore, EPI has introduced a grace period during which the latency SLOs for this endpoint are relaxed\
+          \ to the above values.\n- As soon as all Consumer PSPs can meet the target SLOs, the SLOs for this endpoint will updated to the values below:\n  - p95: 1050 ms\n  - p99: 2050 ms\n  - max: 6150\
+          \ ms"
+      operationId: create-payment-requests
+      parameters:
+      - $ref: '#/components/parameters/Idempotency-Key'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/createPaymentRequestRequest'
+            examples:
+              Create a payment request:
+                value:
+                  consentToken: eyJraWQiOiI5MDU5OGE2NC1jZWNlLTQ1YzItOGUzMy02OTAzODA5OTBlYjgiLCJhbGciOiJSUzI1NiJ9.eyJwYXltZW50U...zhdCrbcVYuWfKKjuUrFtNPq2rGo86RUJnzHCHJCID7JLEzzRg
+                  beneficiaryToken: eyJqa3UiOiJodHRwOi8vZXhhbXBsZS1hY2NlcHRvci1wc3A6ODA4MC9hcGkvZXhhbXBsZS1hY2NlcHRvci1wc3BzL2...FjY2VwdG9yLXBzcHMvMDAwMDAwMDAtMDAwMC0wMDAwLTAw
+                  amount:
+                    euroCents: 1000
+                  orderReference: order-1234567890
+      responses:
+        '201':
+          description: The payment request has been created.
+          headers:
+            Location:
+              description: URL that points to the location of the new payment request resource. For more information about this response header, see [MDN web documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Location).
+              schema:
+                type: string
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/paymentRequestResource'
+              examples:
+                Payment request with successful authorisation:
+                  value:
+                    id: 49207e81-0c0a-4171-8082-716fd948e9bf
+                    createdAt: '2023-05-03T10:29:19.817Z'
+                    consentId: b0095e6a-5ea6-4b82-b6e6-11617b6b96f7
+                    paymentPlanType: SingleImmediate
+                    originatorWalletId: a1c60f99-1ae0-44a5-ac87-bea16fc899c0
+                    originatorPaymentMeansId: d4a9e37a-c7bd-42aa-8ed8-e227472d9caa
+                    consumerPspId: 00000000-0000-0000-0000-000000009004
+                    beneficiaryIban: DE00112233000000000028
+                    beneficiaryName: Heaven PSP
+                    acceptorId: some-acceptor-id
+                    acceptorPspId: 00000000-0000-0000-0000-000000007000
+                    acceptorName: Cookies for all
+                    captureStatus: NotCaptured
+                    _links:
+                      self:
+                        href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf
+                      captures:
+                        href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf/captures
+                      authorisation:
+                        href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf/authorisation
+                      refunds:
+                        href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf/refunds
+                    _embedded:
+                      captures:
+                        _embedded:
+                          captures: []
+                        _links:
+                          self:
+                            href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf/captures
+                      authorisation:
+                        id: a1c60f99-1ae0-44a5-ac87-bea16fc899c0
+                        amount:
+                          euroCents: 1999
+                        status:
+                          value: Granted
+                          at: '2023-05-03T10:19:19.233Z'
+                        sentRiskInformation: false
+                        _links:
+                          self:
+                            href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf/authorisation
+                Payment request with rejected authorisation:
+                  value:
+                    id: 49207e81-0c0a-4171-8082-716fd948e9bf
+                    createdAt: '2023-05-03T10:29:19.817Z'
+                    consentId: b0095e6a-5ea6-4b82-b6e6-11617b6b96f7
+                    paymentPlanType: SingleImmediate
+                    originatorWalletId: a1c60f99-1ae0-44a5-ac87-bea16fc899c0
+                    originatorPaymentMeansId: d4a9e37a-c7bd-42aa-8ed8-e227472d9caa
+                    consumerPspId: 00000000-0000-0000-0000-000000009004
+                    beneficiaryIban: DE00112233000000000028
+                    beneficiaryName: Heaven PSP
+                    acceptorId: some-acceptor-id
+                    acceptorPspId: 00000000-0000-0000-0000-000000007000
+                    acceptorName: Cookies for all
+                    captureStatus: NotCaptured
+                    _links:
+                      self:
+                        href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf
+                      captures:
+                        href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf/captures
+                      authorisation:
+                        href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf/authorisation
+                      refunds:
+                        href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf/refunds
+                    _embedded:
+                      captures:
+                        _embedded:
+                          captures: []
+                        _links:
+                          self:
+                            href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf/captures
+                      authorisation:
+                        id: a1c60f99-1ae0-44a5-ac87-bea16fc899c0
+                        amount:
+                          euroCents: 1999
+                        status:
+                          value: Rejected
+                          at: '2023-05-03T10:19:19.233Z'
+                          reasonCode: AB01
+                          reason: Insufficient funds
+                        sentRiskInformation: false
+                        _links:
+                          self:
+                            href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf/authorisation
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+        '401':
+          $ref: '#/components/responses/errorResponse401'
+        '403':
+          description: "Forbidden - The payment request is not permitted for one of the following reasons:\n - The caller principle does not have the permission to perform the operation (for example, they\
+            \ do not have the `payment:request` scope).\n - The consent token cannot be decoded (for example, for cryptographic reasons).\n - The consent token is not valid because it has expired or has\
+            \ been revoked.\n - The payment request is not covered by what the consumer consented to.\n - The beneficiary token cannot be decoded (for example, for cryptographic reasons)."
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                PaymentRequestNotCoveredByConsent:
+                  value:
+                    type: about:blank
+                    status: 403
+                    title: Forbidden
+                    detail: Payment request is not covered by what the consumer consented to.
+        '409':
+          description: '- The consent resource and beneficiary token contain conflicting acceptor data.
+
+            - The idempotency header was already used; a request with the same idempotency key is still in progress.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                AcceptorDataDontMatch:
+                  value:
+                    type: about:blank
+                    status: 409
+                    title: Conflict
+                    detail: Acceptor data does not match.
+        '500':
+          $ref: '#/components/responses/errorResponse500'
+        '502':
+          $ref: '#/components/responses/errorResponse502'
+        '503':
+          $ref: '#/components/responses/errorResponse503'
+      description: "After a consumer approves a consent request, the acceptor PSP can request payment from the consumer PSP. Requests go through EPI central services.\n## 1. Payment authorisation\nBy making\
+        \ the endpoint call to create a payment request, the acceptor PSP creates a _payment request resource_ at EPI central services. The creation of the payment request resource causes EPI central services\
+        \ to request payment _authorisation_ from the consumer PSP. To determine whether the consumer PSP has authorised the payment, the acceptor PSP must check the authorisation status of the Payment\
+        \ Request resource. For more information, see [Retrieve an Authorisation resource from EPI central services](ref:get-payment-request-authorisation).\n\nThe payment request includes a consent token.\
+        \ For more information about the compositon of the consent token, see [consent tokens](doc:consent-tokens).\n## 2. Payment capture\nPayment authorisation by the consumer PSP does not cause the consumer\
+        \ PSP to initiate a transfer of funds between payment accounts. After payment authorisation, for EPI central services to instruct the consumer PSP to initiate transfers, the acceptor PSP must send\
+        \ one or more [capture requests](ref:post-payment-capture) to EPI central services. \n**\u26A0\uFE0F Advance notice of breaking change**. The fields `consentToken`, `beneficiaryToken`, `callbackUrl`,\
+        \ `authorisationCallbackUrl` located in the request payload will be subject to a hard limit of specified `maxLength` characters starting 16 July 2026.\n## Idempotency\nThis endpoint call can benefit\
+        \ from clients setting the Idempotency-Key header  For more information, see [Idempotency](ref:idempotency).\n## Scope \nThis endpoint call requires the `payment:request` scope."
+      summary: Create a payment request [Acceptor PSP]
+      security:
+      - BearerAccessToken: []
+    get:
+      summary: List payment requests [Acceptor PSP]
+      tags:
+      - payment-requests
+      operationId: get-api-payment-requests
+      responses:
+        '200':
+          description: OK
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                type: object
+                properties:
+                  _links:
+                    $ref: '#/components/schemas/PagedCollectionResourceLinks'
+                  _embedded:
+                    type: object
+                    properties:
+                      paymentRequests:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/paymentRequestResource'
+                  page:
+                    $ref: '#/components/schemas/page'
+              examples:
+                Payment requests:
+                  value:
+                    _links:
+                      self:
+                        href: https://api.epicompany.eu/payment/requests?size=2&page=0
+                      first:
+                        href: https://api.epicompany.eu/payment/requests?size=2&page=0
+                      last:
+                        href: https://api.epicompany.eu/payment/requests?size=2&page=1
+                    _embedded:
+                      paymentRequests:
+                      - id: 49207e81-0c0a-4171-8082-716fd948e9bf
+                        createdAt: '2023-05-03T10:29:19.817Z'
+                        consentId: b0095e6a-5ea6-4b82-b6e6-11617b6b96f7
+                        paymentPlanType: SingleImmediate
+                        originatorWalletId: a1c60f99-1ae0-44a5-ac87-bea16fc899c0
+                        originatorPaymentMeansId: d4a9e37a-c7bd-42aa-8ed8-e227472d9caa
+                        consumerPspId: 00000000-0000-0000-0000-000000009004
+                        beneficiaryIban: DE00112233000000000028
+                        beneficiaryName: Heaven PSP
+                        acceptorId: some-acceptor-id
+                        acceptorPspId: 00000000-0000-0000-0000-000000007000
+                        acceptorName: Cookies for all
+                        captureStatus: NotCaptured
+                        _links:
+                          self:
+                            href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf
+                          captures:
+                            href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf/captures
+                          authorisation:
+                            href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf/authorisation
+                          refunds:
+                            href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf/refunds
+                        _embedded:
+                          captures:
+                            _embedded:
+                              captures: []
+                            _links:
+                              self:
+                                href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf/captures
+                          authorisation:
+                            id: a1c60f99-1ae0-44a5-ac87-bea16fc899c0
+                            amount:
+                              euroCents: 1999
+                            status:
+                              value: Granted
+                              at: '2023-05-03T10:19:19.233Z'
+                            sentRiskInformation: false
+                            _links:
+                              self:
+                                href: https://api.epicompany.eu/payment/requests/49207e81-0c0a-4171-8082-716fd948e9bf/authorisation
+                    page:
+                      size: 1
+                      totalElements: 1
+                      requestedPageSize: 2
+                      totalPages: 1
+                      number: 0
+                      limitReached: false
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+        '401':
+          $ref: '#/components/responses/errorResponse401'
+        '500':
+          $ref: '#/components/responses/errorResponse500'
+        '502':
+          $ref: '#/components/responses/errorResponse502'
+        '503':
+          $ref: '#/components/responses/errorResponse503'
+      parameters:
+      - schema:
+          type: string
+          format: uuid
+        in: query
+        name: consentId
+        description: Return only payment requests associated with this consent ID.
+      - $ref: '#/components/parameters/page'
+      - $ref: '#/components/parameters/size'
+      description: '## Retrieve payment requests
+
+        By making this endpoint call, an acceptor PSP can retrieve a list of all payment requests that the acceptor PSP created after the consumer consented to the related consent requests.
+
+
+        ## Scope
+
+        This endpoint call does not require a scope.'
+components:
+  schemas:
+    paymentRequestCaptureCollectionResource:
+      type: object
+      description: This embedded collection contains all captures that correspond to the payment request.
+      properties:
+        _embedded:
+          type: object
+          description: Captures that correspond to the payment request.
+          required:
+          - captures
+          properties:
+            captures:
+              type: array
+              description: Captures that correspond to the payment request.
+              items:
+                $ref: '#/components/schemas/paymentRequestCaptureResource'
+        _links:
+          type: object
+          description: HAL links to related resources.
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+      required:
+      - _embedded
+      - _links
+    paymentRequestCaptureResource:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID of the payment capture.
+        amount:
+          $ref: '#/components/schemas/Money'
+        createdAt:
+          type: string
+          description: Date and time at which the Capture resource was created at EPI central services. A valid UTC timestamp.
+          format: date-time
+        status:
+          $ref: '#/components/schemas/paymentRequestCaptureResourceStatus'
+        referenceId:
+          type: string
+          description: External reference ID of the capture.
+        retryMetadata:
+          description: If the payment capture has been retried, this field contains the metadata of the previous capture attempt.
+          type: object
+          properties:
+            originCaptureId:
+              type: string
+              format: uuid
+              description: The ID of the original payment capture that must be retried.
+          required:
+          - originCaptureId
+        final:
+          type: boolean
+          description: Indicates whether this capture is the final capture.
+        _links:
+          type: object
+          description: HAL links to related resources.
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+      required:
+      - id
+      - amount
+      - status
+      - final
+      - createdAt
+      - _links
+    paymentRequestCaptureResourceRejected:
+      type: object
+      description: The consumer PSP, clearing and settlement mechanism (CSM) provider, or beneficiary PSP has rejected the capture.
+      title: Rejected
+      properties:
+        value:
+          type: string
+          const: Rejected
+        at:
+          type: string
+          description: Date and time at which the status was set to `Rejected`. This value must include the timestamp that is provided in the SCT Inst (T054) element.
+          format: date-time
+        reason:
+          type: string
+          description: If the reason code is 'NARR', this property must contain the proprietary reason why the capture was rejected. Otherwise, it must contain a comprehensive description of the reason
+            code.
+        reasonCode:
+          type: string
+          description: Reason code for the rejection (ISO 20022 PaymentRejectReasonCode).
+      required:
+      - value
+      - at
+      - reason
+      - reasonCode
+    PagedCollectionResourceLinks:
+      type: object
+      properties:
+        self:
+          $ref: '#/components/schemas/link'
+        first:
+          $ref: '#/components/schemas/link'
+        last:
+          $ref: '#/components/schemas/link'
+        prev:
+          $ref: '#/components/schemas/link'
+        next:
+          $ref: '#/components/schemas/link'
+      required:
+      - self
+      - first
+      - last
+    paymentRequestCaptureResourceAccepted:
+      type: object
+      description: The consumer PSP has accepted the payment capture request that EPI central services sent.
+      title: Accepted
+      properties:
+        value:
+          type: string
+          const: Accepted
+        at:
+          type: string
+          description: Date and time at which the status was set to `Accepted`. A valid UTC timestamp.
+          format: date-time
+      required:
+      - value
+      - at
+    paymentRequestCaptureStatus:
+      title: Payment request capture status
+      type: string
+      enum:
+      - NotCaptured
+      - PartiallyCaptured
+      - FullyCaptured
+      description: 'The capture status of a Payment Request. This status represents the overall capture state of the Payment Request resource and differs from the individual statuses of the linked capture
+        operations. A Payment Request resource can have one of the following capture statuses:
+
+
+        |       Status      |                            Description                                                     |
+
+        |:-----------------:|:------------------------------------------------------------------------------------------:|
+
+        | NotCaptured       | The consumer PSP has not processed any payment capture for the payment request.            |
+
+        | PartiallyCaptured | The consumer PSP has processed at least one partial capture for this payment request.      |
+
+        | FullyCaptured     | The Payment request has been fully captured (through 1 or more captures). No further captures are possible for the payment request. This status is the final status. |'
+    paymentRequestAuthorisationResourceFailed:
+      type: object
+      description: Authorisation has failed because of technical problems.
+      title: Failed
+      properties:
+        value:
+          type: string
+          const: Failed
+        at:
+          type: string
+          description: Date and time at which the status was set to `Failed`. A valid UTC timestamp.
+          format: date-time
+        technicalReason:
+          type: string
+          description: Reason for the failure. The reason can include any technical information that might be useful for debugging.
+      required:
+      - value
+      - at
+      - technicalReason
+    settlementMethod:
+      title: SettlementMethod
+      type: string
+      enum:
+      - SCTInst
+      - OnUs
+      - FinancialGuarantees
+      description: 'The consumer PSP can settle a capture by using one of the following settlement methods:
+
+
+        |       Method        |                            Description                                                                                                                                                          |
+
+        |:-------------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+
+        | SCTInst             | A SEPA instant credit transfer (SCT Inst) is the default settlement method for Wero transactions.                                                                                               |
+
+        | OnUs                | On-us transactions are those for which the payment sources of the originator and of the beneficiary are with the same consumer PSP.                                                             |
+
+        | FinancialGuarantees | Applicable only to e/m-commerce and point-of-sale payments. Used by EPI only when consumer PSPs have already made financial guarantees. For details, see the _EPI Financial
+        Guarantees Policy_. |'
+    Money:
+      title: Money
+      type: object
+      properties:
+        euroCents:
+          type: integer
+          description: 'The minimum `euroCents` value is `1`. `euroCents: 100` represents one euro.'
+      description: 'Amounts of money in the API are represented as objects with a single property that describes both the currency (for example, euro) and the unit (which is usually the minor unit of the
+        currency, for example, cents).
+
+
+        Currently, the only supported representation is euroCents, as shown in the example.
+
+
+        Other currencies will be added as needed.'
+      examples:
+      - euroCents: 4900
+    paymentRequestResource:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the payment request.
+        createdAt:
+          type: string
+          description: The date and time at which the payment request was created. A valid UTC timestamp.
+          format: date-time
+        consentId:
+          type: string
+          format: uuid
+          description: The ID of the consent resource.
+        paymentPlanType:
+          type: string
+          enum:
+          - SingleImmediate
+          - EventDependent
+          - C2c
+          - Subscription
+          - ConsumerPresentFuturePayment
+          description: The type of the consented payment plan.
+        originatorWalletId:
+          type: string
+          format: uuid
+          description: The ID of the originator's wallet.
+        originatorPaymentMeansId:
+          type: string
+          format: uuid
+          description: The ID of the originator's means of payment.
+        consumerPspId:
+          type: string
+          format: uuid
+          description: The ID of the originator's PSP (consumer PSP).
+        beneficiaryIban:
+          type: string
+          description: The IBAN of the beneficiary.
+        beneficiaryName:
+          type: string
+          description: The name of the beneficiary.
+        acceptorId:
+          type: string
+          description: The ID of the acceptor, as is known to the acceptor PSP.
+        acceptorPspId:
+          type: string
+          format: uuid
+          description: The ID of the acceptor PSP.
+        acceptorName:
+          type: string
+          description: The name of the acceptor.
+        acceptorMCC:
+          type: string
+          description: The merchant category code (MCC) of the acceptor.
+        acceptorCountryCode:
+          type: string
+          description: The country of the acceptor.
+        shopId:
+          type: string
+          description: The ID of the shop, as is known to the acceptor PSP.
+        shopName:
+          type: string
+          description: The name of the shop.
+        captureStatus:
+          $ref: '#/components/schemas/paymentRequestCaptureStatus'
+        _links:
+          type: object
+          description: The HAL links to related resources.
+          required:
+          - self
+          - captures
+          - authorisation
+          - refunds
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+            captures:
+              $ref: '#/components/schemas/link'
+            authorisation:
+              $ref: '#/components/schemas/link'
+            refunds:
+              $ref: '#/components/schemas/link'
+        _embedded:
+          type: object
+          description: Embedded resources.
+          properties:
+            captures:
+              $ref: '#/components/schemas/paymentRequestCaptureCollectionResource'
+            authorisation:
+              $ref: '#/components/schemas/paymentRequestAuthorisationResource'
+          required:
+          - captures
+          - authorisation
+      required:
+      - id
+      - createdAt
+      - consentId
+      - paymentPlanType
+      - originatorWalletId
+      - originatorPaymentMeansId
+      - consumerPspId
+      - beneficiaryIban
+      - beneficiaryName
+      - acceptorId
+      - acceptorPspId
+      - acceptorName
+      - captureStatus
+      - _links
+      - _embedded
+    createPaymentRequestRequest:
+      type: object
+      properties:
+        consentToken:
+          type: string
+          maxLength: 3072
+          description: Consent token.
+        beneficiaryToken:
+          type: string
+          maxLength: 2048
+          description: Beneficiary token.
+        amount:
+          $ref: '#/components/schemas/Money'
+        sendRiskInformation:
+          type: boolean
+          default: false
+          description: Indicates if a payment authorisation request including the fraud risk information must be sent to the callback URL  (or the authorisation callback URL). If this property is `true`,
+            a callback URL must be submitted with the request.
+        externalAuthorisationId:
+          type: string
+          minLength: 1
+          maxLength: 36
+          description: The optional external authorisation ID will be transmitted with the payment authorisation request and sent to the callback URL.
+        orderReference:
+          type: string
+          description: Reference to the order for which the payment is made. Limited to 35 characters.
+          minLength: 1
+          maxLength: 35
+        description:
+          type: string
+          description: Optional description of the remittance info. Limited to 140 characters.
+          minLength: 1
+          maxLength: 140
+        callbackUrl:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Optional URL to which EPI central services send notifications of changes to the payment-request status. See also the endpoint call for [notifying an acceptor PSP of a change in payment-request
+            status](ref:payment-request-notifications). When `sendRiskInformation` is `true` and `authorisationCallbackUrl` is **not** provided, this URL will receive the authorisation request.
+        authorisationCallbackUrl:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Optional URL to which EPI central services send authorisation request. When `sendRiskInformation` is `true` and this URL is provided, it will receive the authorisation request.
+        consumerDeviceTelemetry:
+          $ref: '#/components/schemas/InboundConsumerDeviceTelemetry'
+      required:
+      - consentToken
+      - beneficiaryToken
+      - amount
+      - orderReference
+    paymentRequestCaptureResourceStatus:
+      description: "A Capture resource at EPI central services can have the following statuses:\n\n  |       Status      |                            Description                                        \
+        \                                                   |\n  |:-----------------:|:--------------------------------------------------------------------------------------------------------------------------------:|\n\
+        \  | Accepted          | The consumer PSP has accepted the capture request.                                                                               |\n  | Failed            | Payment capture\
+        \ has failed due to a technical issue at EPI central services or at the consumer PSP.                              |\n  | Pending           | The consumer PSP accepted the capture request but encountered\
+        \ an issue while executing the SCT Inst and is trying to resolve it. |\n  | Rejected          | The consumer PSP, clearing and settlement mechanism (CSM) provider, or beneficiary PSP has rejected\
+        \ the capture.                 |\n  | Settled           | The consumer PSP has successfully settled the payment that EPI central services requested to be captured.                        |"
+      discriminator:
+        propertyName: value
+        mapping:
+          Accepted: '#/components/schemas/paymentRequestCaptureResourceAccepted'
+          Failed: '#/components/schemas/paymentRequestCaptureResourceFailed'
+          Pending: '#/components/schemas/paymentRequestCaptureResourcePending'
+          Rejected: '#/components/schemas/paymentRequestCaptureResourceRejected'
+          Settled: '#/components/schemas/paymentRequestCaptureResourceSettled'
+      oneOf:
+      - $ref: '#/components/schemas/paymentRequestCaptureResourceAccepted'
+      - $ref: '#/components/schemas/paymentRequestCaptureResourceFailed'
+      - $ref: '#/components/schemas/paymentRequestCaptureResourcePending'
+      - $ref: '#/components/schemas/paymentRequestCaptureResourceRejected'
+      - $ref: '#/components/schemas/paymentRequestCaptureResourceSettled'
+    paymentRequestCaptureResourceFailed:
+      type: object
+      description: EPI central services sent the payment capture request to the consumer PSP, but the request has failed for technical reasons.
+      title: Failed
+      properties:
+        value:
+          type: string
+          const: Failed
+        at:
+          type: string
+          description: Date and time at which the status was set to `Failed`. A valid UTC timestamp.
+          format: date-time
+        technicalReason:
+          type: string
+          description: Reason for the failure. The reason can include any technical information that might be useful for debugging.
+      required:
+      - value
+      - at
+      - technicalReason
+    ConstraintViolationProblem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type only in the context of the provided endpoint.
+          const: /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          default: Constraint Violation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          default: 400
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+        violations:
+          type: array
+          description: A list of constraint violations.
+          items:
+            type: object
+            required:
+            - field
+            - message
+            properties:
+              field:
+                type: string
+                description: The name of the field that caused the constraint violation.
+              message:
+                type: string
+                description: A technical message that describes the constraint violation, in English.
+              userMessageKey:
+                type: string
+                description: A key that describes the type of constraint violation, useful to report user input validation error. The key can be used to look up a localised message for instance, that can
+                  then be interpolated using the `userMessageValue`.
+                example: constraint.string.min-length
+                oneOf:
+                - type: string
+                  title: Standard constraint violation key
+                  description: 'All known standard constraint violation keys: * **constraint.required**: The field is required. * **constraint.type**: The field must be of the correct type. * **constraint.enum**:
+                    The field must be one of the allowed values. `userMessageValue` contains the list as a string value. * **constraint.const**: The field must be a specific value. `userMessageValue` contains
+                    the value as a string value. * **constraint.number.multiple-of**: The field must be a multiple of a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-inclusive**:
+                    The field must be less than or equal to a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-exclusive**: The field must be less
+                    than a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.minimum-inclusive**: The field must be greater than or equal to a specific number.
+                    `userMessageValue` contains the number as a string value.            * **constraint.number.minimum-exclusive**: The field must be greater than a specific number. `userMessageValue` contains
+                    the number as a string value. * **constraint.string.max-length**: The field must be at most a specific number of characters long. `userMessageValue` contains the number as a string value.
+                    * **constraint.string.min-length**: The field must be at least a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.min-length-not-blank**:
+                    The field must be at least a specific number of characters long and not blank. `userMessageValue` contains the number as a string value. * **constraint.string.max-graphemes**: The field
+                    must be at most a specific number of graphemes long. `userMessageValue` contains the number as a string value. * **constraint.string.pattern**: The field must match a specific pattern.
+                    * **constraint.string.length**: The field must be a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.url**: The field
+                    must be a valid URL. * **constraint.string.url-https**: The field must be a valid HTTPS URL. * **constraint.string.uuid4**: The field must be a valid UUID v4. * **constraint.string.email**:
+                    The field must be a valid email address. * **constraint.string.phone-number**: The field must be a valid phone number. * **constraint.duration.min-seconds**: The field must be at least
+                    a specific number of seconds long. `userMessageValue` contains the number as a string value. * **constraint.duration.max-days**: The field must be at most a specific number of days long.
+                    `userMessageValue` contains the number as a string value. * **constraint.datetime.before**: The field must be before a specific date and time. `userMessageValue` contains the `datetime`
+                    as a timestamp string value. * **constraint.array.min-items**: The field must contain at least a specific number of items. `userMessageValue` contains the number as a string value. *
+                    **constraint.array.max-items**: The field must contain at most a specific number of items. `userMessageValue` contains the number as a string value. * **constraint.array.unique-items**:
+                    The field must contain only unique items. * **constraint.amount.maximum**: The field must be less than or equal to a specific amount. * **constraint.amount.minimum**: The field must
+                    be greater than or equal to a specific amount. * **constraint.currency-supported**: The field must be a supported currency.'
+                  enum:
+                  - constraint.required
+                  - constraint.type
+                  - constraint.enum
+                  - constraint.const
+                  - constraint.number.multiple-of
+                  - constraint.number.maximum-inclusive
+                  - constraint.number.maximum-exclusive
+                  - constraint.number.minimum-inclusive
+                  - constraint.number.minimum-exclusive
+                  - constraint.string.max-length
+                  - constraint.string.min-length
+                  - constraint.string.min-length-not-blank
+                  - constraint.string.max-graphemes
+                  - constraint.string.pattern
+                  - constraint.string.length
+                  - constraint.string.url
+                  - constraint.string.url-https
+                  - constraint.string.uuid4
+                  - constraint.string.email
+                  - constraint.string.phone-number
+                  - constraint.duration.min-seconds
+                  - constraint.duration.max-days
+                  - constraint.datetime.before
+                  - constraint.array.min-items
+                  - constraint.array.max-items
+                  - constraint.array.unique-items
+                  - constraint.amount.maximum
+                  - constraint.amount.minimum
+                  - constraint.currency-supported
+                - type: string
+                  description: Placeholder for a future user message key.
+                  title: Placeholder for future message keys
+                  not:
+                    enum:
+                    - constraint.required
+                    - constraint.type
+                    - constraint.enum
+                    - constraint.const
+                    - constraint.number.multiple-of
+                    - constraint.number.maximum-inclusive
+                    - constraint.number.maximum-exclusive
+                    - constraint.number.minimum-inclusive
+                    - constraint.number.minimum-exclusive
+                    - constraint.string.max-length
+                    - constraint.string.min-length
+                    - constraint.string.min-length-not-blank
+                    - constraint.string.max-graphemes
+                    - constraint.string.pattern
+                    - constraint.string.length
+                    - constraint.string.url
+                    - constraint.string.url-https
+                    - constraint.string.uuid4
+                    - constraint.string.email
+                    - constraint.string.phone-number
+                    - constraint.duration.min-seconds
+                    - constraint.duration.max-days
+                    - constraint.datetime.before
+                    - constraint.array.min-items
+                    - constraint.array.max-items
+                    - constraint.array.unique-items
+                    - constraint.amount.maximum
+                    - constraint.amount.minimum
+                    - constraint.currency-supported
+              userMessageValue:
+                type: string
+                description: A string value that can be used to replace a placeholder in the localised message.
+      required:
+      - type
+      - title
+      - status
+      - violations
+    paymentRequestAuthorisationResource:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The payment request's internal ID.
+        amount:
+          $ref: '#/components/schemas/Money'
+        status:
+          $ref: '#/components/schemas/paymentRequestAuthorisationResourceStatus'
+        externalId:
+          type: string
+          description: If the `externalAuthorisationId` has been submitted with the payment request, this parameter will be populated with the ID.
+        sentRiskInformation:
+          type: boolean
+          description: Indicates if a request for payment authorisation, including the fraud risk score information, has been sent to the callback URL.
+        _links:
+          type: object
+          description: HAL links to related resources.
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+      required:
+      - id
+      - amount
+      - status
+      - sentRiskInformation
+      - _links
+    paymentRequestCaptureResourceSettled:
+      type: object
+      description: The consumer PSP has successfully settled the payment that EPI central services requested to be captured.
+      title: Settled
+      properties:
+        value:
+          type: string
+          const: Settled
+        at:
+          type: string
+          description: Date and time at which the status was set to `Settled`. This value must include the timestamp that is provided in the SCT Inst (T054) element.
+          format: date-time
+        originatorPspReference:
+          type: string
+          description: "Originator PSP\u2019s reference number of the transfer, for example, of the SCT Inst (T054). The reference of the SCT Inst Transaction given by the originator PSP, which must be\
+            \ delivered unaltered to the beneficiary PSP."
+        settlementMethod:
+          $ref: '#/components/schemas/settlementMethod'
+        manually:
+          type: boolean
+          description: Indicates whether the capture was settled manually.
+      required:
+      - value
+      - at
+      - originatorPspReference
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type, only in the context of the provided endpoint.
+          default: about:blank
+          example: /some/uri-reference
+          not:
+            enum:
+            - /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          example: some title for the error situation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem, which helps locate the problem and describes how to proceed.
+          example: some description for the error situation
+        instance:
+          type: string
+          format: uri-reference
+          description: A URI reference that identifies the specific occurrence of the problem, for example, by adding a fragment identifier or sub-path to the problem type. Can be used to locate the root
+            of the problem in the source code.
+          example: /some/uri-reference#specific-occurrence-context
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+      required:
+      - type
+      - title
+      - status
+    paymentRequestAuthorisationResourceRejected:
+      type: object
+      description: The authorisation request has been rejected by the consumer PSP (or by the acceptor PSP in case `sendRiskInformation` was set in the [payment request](ref:create-payment-requests)).
+      title: Rejected
+      properties:
+        value:
+          type: string
+          const: Rejected
+        at:
+          type: string
+          description: Date and time at which the status was set to `Rejected`. A valid UTC timestamp.
+          format: date-time
+        reason:
+          type: string
+          description: If the reason code is 'NARR', this property must contain the proprietary reason for the rejection. Otherwise, it must contain a comprehensive description of the reason code.
+        reasonCode:
+          type: string
+          description: Reason code for the rejection (ISO 20022 PaymentRejectReasonCode).
+      required:
+      - value
+      - at
+      - reason
+      - reasonCode
+    page:
+      type: object
+      examples:
+      - size: 1
+        totalElements: 1
+        totalPages: 1
+        number: 0
+        requestedPageSize: 10
+        limitReached: false
+      properties:
+        size:
+          type: integer
+          description: The number of elements on the page.
+        totalElements:
+          type: integer
+          description: The total number of elements available with the query.
+        totalPages:
+          type: integer
+          description: The total number of pages available, using the requested page size.
+        number:
+          type: integer
+          description: The number of the current page. Page numbers start at `0` and continue to the total number of pages.
+        requestedPageSize:
+          type: integer
+          description: The requested page size. The value of "size" might differ for the last page if the last page is not full.
+        limitReached:
+          type: boolean
+          description: If `true`, an internal limit when retrieving results was exceeded. Not all elements are returned.
+      description: A paginated resource is a HAL resource. The resource contains the page object, which describes the provided subset of data. The data is provided as an embedded collection resource. The
+        name of the collection depends on the endpoint. HAL links are also provided, for navigation.
+      title: Structure of a paginated response
+      required:
+      - size
+      - totalElements
+      - totalPages
+      - number
+      - requestedPageSize
+      - limitReached
+    link:
+      type: object
+      properties:
+        href:
+          type: string
+          format: uri
+        name:
+          type: string
+      required:
+      - href
+    IBAN:
+      type: string
+    paymentRequestAuthorisationResourceCancelled:
+      type: object
+      description: Authorisation has been successfully cancelled.
+      title: Cancelled
+      properties:
+        value:
+          type: string
+          const: Cancelled
+        at:
+          type: string
+          description: Date and time at which the status was set to `Cancelled`. A valid UTC timestamp.
+          format: date-time
+      required:
+      - value
+      - at
+    InboundConsumerDeviceTelemetry:
+      type: object
+      title: Consumer device telemetry
+      description: 'Telemetry data ("device fingerprint") of the device used by the consumer.
+
+
+        EPI cannot guarantee consumer PSPs will send a complete set of consumer device telemetry properties, and therefore they are treated as optional.
+
+
+        It is possible to send additional properties in this object, which EPI will pass on verbatim to EPI''s fraud scoring service provider for evaluation.
+
+
+        This is to allow for easier integration on the consumer PSP side.
+
+
+        However, PSPs are strongly encouraged to provide values for the properties as specified here where possible in order for EPI to provide the best possible fraud scoring.'
+      additionalProperties: true
+      properties:
+        deviceIpAddress:
+          description: The IPv4 or IPv6 address of the consumer's device.
+          type: string
+          example: 192.0.2.123
+        devicePort:
+          description: The ephemeral port of the consumer's device.
+          type: integer
+          example: 52314
+        deviceUserAgent:
+          description: The user agent string of the device used by the consumer. This will often contain information redundantly captured in the `deviceOs` and `deviceModel` properties.
+          type: string
+          maxLength: 256
+          examples:
+          - Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 ...
+          - Mozilla/5.0 (Linux; Android 10; Pixel 3) AppleWebKit/537.36...
+        deviceModel:
+          description: The model of the device used by the consumer.
+          type: string
+          maxLength: 256
+          examples:
+          - iPhone12,1
+          - Pixel 3
+        deviceScreenResolution:
+          description: The screen resolution of the device used by the consumer, in pixels (width x height).
+          type: string
+          examples:
+          - 828x1792
+          - 1080x2280
+        deviceCellularProviders:
+          type: string
+          maxLength: 256
+          description: The cellular provider(s) of the device used by the consumer. This is a comma-separated list of the names of the cellular providers.
+          examples:
+          - Telekom, Vodafone
+          - T-Mobile
+        deviceLocation:
+          description: The location of the device used by the consumer. This is a comma-separated list of the latitude and longitude of the device.
+          type: string
+          example: 37.7749,-122.4194
+        deviceTimeZone:
+          description: The time zone of the device used by the consumer.
+          type: string
+          maxLength: 256
+          example: America/Los_Angeles
+        deviceId:
+          description: 'The unique device identifier of the device used by the consumer. Note: Formats differ (UUID on iOS vs. 64-bit hex string on Android).'
+          type: string
+          maxLength: 256
+          examples:
+          - 6fc1c567-a4cd-45c5-9e44-c5a5b9a6f09a
+          - 2b6f0cc904d137be2e1730235f5664094b831186
+        deviceOs:
+          description: The operating system of the device used by the consumer.
+          type: string
+          examples:
+          - iOS
+          - Android
+        deviceLanguage:
+          description: The language of the device used by the consumer.
+          type: string
+          example: en_US
+        deviceTime:
+          description: The time on the device used by the consumer, in ISO 8601 format.
+          type: string
+          format: date-time
+          example: '2023-09-25T12:34:56Z'
+    paymentRequestCaptureResourcePending:
+      type: object
+      description: EPI central services sent the payment capture request to the consumer PSP. However, the consumer PSP encountered a problem while executing the SCT Inst and is trying to resolve it.
+      title: Pending
+      properties:
+        value:
+          type: string
+          const: Pending
+        at:
+          type: string
+          description: Date and time at which the status was set to `Pending`. This value must include the timestamp that is provided in the SCT Inst (T054) element.
+          format: date-time
+        reason:
+          type: string
+          description: If the reason code is 'NARR', this property must contain the proprietary reason why the capture is pending. Otherwise, it must contain a comprehensive description of the reason code.
+        reasonCode:
+          type: string
+          description: Reason code for the problem / rejection (ISO 20022 PaymentRejectReasonCode).
+      required:
+      - value
+      - at
+      - reason
+      - reasonCode
+    paymentRequestAuthorisationResourceGranted:
+      type: object
+      description: The authorisation request was successful; the consumer PSP has authorised the payment (as well as the acceptor PSP if `sendRiskInformation` was set in the [payment request](ref:create-payment-requests)).
+      title: Granted
+      properties:
+        value:
+          type: string
+          const: Granted
+        payerName:
+          type: string
+          minLength: 1
+          maxLength: 70
+          description: This value is used for consumer-to-consumer payments and only in the context of the Dutch market. The name of the payer. This property is only provided if it has been provided by
+            the consumer PSP in the authorisation response.
+        payerIban:
+          $ref: '#/components/schemas/IBAN'
+          description: This value is used for consumer-to-consumer payments and only in the context of the Dutch market. The IBAN of the payer. This property is only provided if it has been provided by
+            the consumer PSP in the authorisation response.
+        at:
+          type: string
+          description: Date and time at which the status was set to `Granted`. A valid UTC timestamp.
+          format: date-time
+      required:
+      - value
+      - at
+    paymentRequestAuthorisationResourceInitial:
+      type: object
+      description: The status of the Authorisation resource at EPI central services is `Initial`. An authorisation request has _not_ been sent to the consumer PSP yet (neither to the acceptor PSP in case
+        `sendRiskInformation` was set in the [payment request](ref:create-payment-requests)).
+      title: Initial
+      properties:
+        value:
+          type: string
+          const: Initial
+        at:
+          type: string
+          description: Date and time at which the status was set to `Initial`. A valid UTC timestamp.
+          format: date-time
+      required:
+      - value
+      - at
+    paymentRequestAuthorisationResourceStatus:
+      description: 'A payment Authorisation resource at EPI central services indicates the status of the consumer PSP''s authorisation of a payment. The resource can have one of the following statuses:
+
+
+        |       Status      |                            Description                                                                                        |
+
+        |:-----------------:|:-----------------------------------------------------------------------------------------------------------------------------:|
+
+        | Initial           | EPI central services has created an Authorisation resource but has not yet sent an authorisation request to the consumer PSP. |
+
+        | Granted           | The consumer PSP has authorised the payment.                                                                                  |
+
+        | Rejected          | The consumer PSP has rejected the authorisation request.                                                                      |
+
+        | Failed            | Payment authorisation has failed due to a technical issue at EPI central services or at the consumer PSP.                     |
+
+        | Cancelled         | Payment authorisation has been cancelled.                                                                                     |'
+      discriminator:
+        propertyName: value
+        mapping:
+          Initial: '#/components/schemas/paymentRequestAuthorisationResourceInitial'
+          Granted: '#/components/schemas/paymentRequestAuthorisationResourceGranted'
+          Rejected: '#/components/schemas/paymentRequestAuthorisationResourceRejected'
+          Failed: '#/components/schemas/paymentRequestAuthorisationResourceFailed'
+          Cancelled: '#/components/schemas/paymentRequestAuthorisationResourceCancelled'
+      oneOf:
+      - $ref: '#/components/schemas/paymentRequestAuthorisationResourceInitial'
+      - $ref: '#/components/schemas/paymentRequestAuthorisationResourceGranted'
+      - $ref: '#/components/schemas/paymentRequestAuthorisationResourceRejected'
+      - $ref: '#/components/schemas/paymentRequestAuthorisationResourceFailed'
+      - $ref: '#/components/schemas/paymentRequestAuthorisationResourceCancelled'

@@ -1,0 +1,279 @@
+openapi: 3.0.0
+info:
+  title: EPI Central Services API - Acceptor PSP Refund Events
+  version: 0.1.0
+  contact:
+    name: EPI Company
+    url: https://epicompany.eu
+    email: info@epicompany.eu
+  license:
+    name: Proprietary
+    identifier: Proprietary
+servers:
+  - url: https://api.epicompany.eu
+    description: Production environment
+paths:
+  /api/acceptor-psps/refund-events:
+    servers: []
+    post:
+      tags:
+        - acceptor-psp-events
+      operationId: post-acceptor-psp-refund-events
+      summary: Notify EPI of an event [Acceptor PSP]
+      description: |-
+        The acceptor PSP events resource enables EPI central services to receive notifications about certain events that happen on the acceptor PSP side. These events relate to the processing of refunds, as well as chargebacks at a later stage.
+        The acceptor PSP can change only the resources that belong to them. However, authentication is handled asynchronously, so all valid request bodies return a 202 response.
+        The acceptor PSP must implement a mechanism to ensure that EPI receives the message successfully, for example, calling the endpoint repeatedly until EPI returns with a `202 - Accepted` response.
+        ## Scope
+        This endpoint call does not require a scope.
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptorRefundStatusChangedRequest'
+        description: ''
+      responses:
+        '202':
+          description: Accepted
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+      security:
+        - BearerAccessToken: []
+components:
+  schemas:
+    AcceptorRefundStatusChangedRequest:
+      title: Refund Status Changed
+      type: object
+      required:
+        - id
+        - refundId
+        - status
+        - amount
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID of this event.
+        refundId:
+          type: string
+          format: uuid
+          description: ID of the refund at EPI central services. This ID can be found either in the remittance info (T009) (first UUID) or in the originator's reference (T014) but without any '-'.
+        status:
+          $ref: '#/components/schemas/AcceptorRefundStatusForChange'
+        remittanceInfo:
+          type: string
+          description: The remittance information that is provided in the incoming SCT-Inst.
+        amount:
+          $ref: '#/components/schemas/Money'
+          description: Monetary amount of the incoming SCT-Inst.
+      examples:
+        - id: c0204631-b190-425d-bfa6-aa053b88f382
+          refundId: d8bcb97b-3524-4eb1-bde3-419fbe0a9e2e
+          amount:
+            euroCents: 100
+          status:
+            type: Settled
+            at: '2023-05-03T10:38:30.799631719Z'
+    AcceptorRefundStatusForChange:
+      description: |
+        The acceptor PSP can notify EPI central services of one of the following statuses for the refund settlement:
+
+
+
+        |       Status      |                            Description                                                            |
+        |:-----------------:|:-------------------------------------------------------------------------------------------------:|
+        | Settled           | The refund settlement was successful.                                                             |
+        | Rejected          | The refund settlement was rejected.                                                               |
+        | Failed            | The refund settlement has failed for technical reasons.                                           |
+      discriminator:
+        propertyName: type
+        mapping:
+          Failed: '#/components/schemas/AcceptorRefundStatusFailed'
+          Rejected: '#/components/schemas/AcceptorRefundStatusRejected'
+          Settled: '#/components/schemas/AcceptorRefundStatusSettled'
+      oneOf:
+        - $ref: '#/components/schemas/AcceptorRefundStatusFailed'
+        - $ref: '#/components/schemas/AcceptorRefundStatusRejected'
+        - $ref: '#/components/schemas/AcceptorRefundStatusSettled'
+    AcceptorRefundStatusFailed:
+      type: object
+      title: Failed
+      description: The refund has failed for technical reasons.
+      properties:
+        type:
+          type: string
+          const: Failed
+        technicalReason:
+          type: string
+          description: The technical reason why the refund failed.
+        at:
+          type: string
+          format: date-time
+          description: The date and time of the incoming SCT-Inst.
+      required:
+        - type
+        - at
+        - technicalReason
+    AcceptorRefundStatusRejected:
+      type: object
+      title: Rejected
+      description: The consumer PSP or beneficiary PSP has rejected the refund.
+      properties:
+        type:
+          type: string
+          const: Rejected
+        reasonCode:
+          type: string
+          description: Reason code (from ExternalStatusReasonCode) indicating why the refund was rejected.
+        reason:
+          type: string
+          description: Proprietary reason why the refund was rejected.
+        at:
+          type: string
+          format: date-time
+          description: The date and time of the incoming SCT-Inst.
+      required:
+        - type
+        - at
+        - reasonCode
+        - reason
+    AcceptorRefundStatusSettled:
+      type: object
+      title: Settled
+      description: The refund has been settled.
+      properties:
+        type:
+          type: string
+          const: Settled
+        at:
+          type: string
+          format: date-time
+          description: The date and time of the incoming SCT-Inst.
+      required:
+        - type
+        - at
+    Money:
+      title: Money
+      type: object
+      properties:
+        euroCents:
+          type: integer
+          description: 'The minimum `euroCents` value is `1`. `euroCents: 100` represents one euro.'
+      description: |-
+        Amounts of money in the API are represented as objects with a single property that describes both the currency (for example, euro) and the unit (which is usually the minor unit of the currency, for example, cents).
+
+        Currently, the only supported representation is euroCents, as shown in the example.
+
+        Other currencies will be added as needed.
+      examples:
+        - euroCents: 4900
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type, only in the context of the provided endpoint.
+          default: about:blank
+          example: /some/uri-reference
+          not:
+            enum:
+              - /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          example: some title for the error situation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual HTTP response.
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem, which helps locate the problem and describes how to proceed.
+          example: some description for the error situation
+        instance:
+          type: string
+          format: uri-reference
+          description: A URI reference that identifies the specific occurrence of the problem, for example, by adding a fragment identifier or sub-path to the problem type. Can be used to locate the root of the problem in the source code.
+          example: /some/uri-reference#specific-occurrence-context
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+      required:
+        - type
+        - title
+        - status
+    ConstraintViolationProblem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type only in the context of the provided endpoint.
+          const: /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          default: Constraint Violation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual HTTP response.
+          default: 400
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+        violations:
+          type: array
+          description: A list of constraint violations.
+          items:
+            type: object
+            required:
+              - field
+              - message
+            properties:
+              field:
+                type: string
+                description: The name of the field that caused the constraint violation.
+              message:
+                type: string
+                description: A technical message that describes the constraint violation, in English.
+              userMessageKey:
+                type: string
+                description: A key that describes the type of constraint violation, useful to report user input validation error. The key can be used to look up a localised message for instance, that can then be interpolated using the `userMessageValue`.
+                example: constraint.string.min-length
+  responses:
+    errorResponse400:
+      description: Bad Request - The request is malformed.
+      content:
+        application/problem+json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/Problem'
+              - $ref: '#/components/schemas/ConstraintViolationProblem'
+          examples:
+            generic:
+              value:
+                type: about:blank
+                status: 400
+                title: Bad Request
+                callId: 00000000000000000000000000000000-0000000000000000
+            ConstraintViolationProblem:
+              value:
+                callId: 599155e6261f6a280283f0594e17b83b-451143485fb6c492
+                status: 400
+                title: Constraint Violation
+                type: /problem/constraint-violation
+                violations:
+                  - field: .somefield
+                    message: Must have valid format.
+  securitySchemes:
+    BearerAccessToken:
+      type: http
+      scheme: bearer
+      description: Bearer token authentication

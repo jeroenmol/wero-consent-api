@@ -1,0 +1,3071 @@
+openapi: 3.0.0
+info:
+  title: Activities API
+  version: 1.0.0
+  description: API specification for activities resource
+servers:
+- url: https://api.example.com
+paths:
+  /api/activities:
+    servers: []
+    get:
+      operationId: get-activities
+      summary: List activities [Wallet, Consumer PSP]
+      description: "Use this endpoint call to retrieve a list of activity summaries. \nAn activity summary is a condensed representation of an activity, giving just enough information to make the activity\
+        \ identifiable for the consumer.\nActivities represent a chronological list of consumer-related events and transactions. For more information about how the activities endpoint is used, see [Enriching\
+        \ consumer transaction activities information](doc:enriching-consumer-activities-information). \n## Scopes\nConsumer PSPs intending to enrich their list of SEPA transactions with EPI specific information\
+        \ must have the `activities:enrichment` scope.\nConsumer PSPs intending to show all activities must have the `activities:all` scope.\nConsumer PSPs accessing this endpoint MUST fill the `paymentSourceIds`\
+        \ query parameter with the desired payment source IDs."
+      tags:
+      - activities
+      parameters:
+      - name: categories
+        in: query
+        description: 'Comma-separated list of categories:
+
+          - ECommerce
+
+          - P2P
+
+          Check the category field for a specific activity summary to see to which category it belongs.'
+        required: false
+        schema:
+          type: string
+          pattern: ^(ECommerce|P2P)([,](ECommerce|P2P))*$
+      - name: types
+        in: query
+        description: 'Comma-separated list of types:
+
+          - EventDependentCapture
+
+          - EventDependentReservation
+
+          - Refund
+
+          - SingleImmediatePayment
+
+          - SubscriptionPayment
+
+          - P2PPaymentPayer
+
+          - P2PPaymentPayee
+
+          - P2PPaymentPayerAndPayee
+
+          - P2PRequestPayer
+
+          - P2PRequestPayee
+
+          - P2POpenRequestPayer
+
+          - P2POpenRequestPayee
+
+
+          Check the type field for a specific activity to see which type is given.'
+        required: false
+        schema:
+          type: string
+          pattern: ^(EventDependentCapture|EventDependentReservation|Refund|SingleImmediatePayment|P2PPaymentPayer|P2PPaymentPayee|P2PPaymentPayerAndPayee|P2PRequestPayer|P2PRequestPayee|P2POpenRequestPayer|P2POpenRequestPayee)([,](EventDependentCapture|EventDependentReservation|Refund|SingleImmediatePayment|P2PPaymentPayer|P2PPaymentPayee|P2PPaymentPayerAndPayee|P2PRequestPayer|P2PRequestPayee|P2POpenRequestPayer|P2POpenRequestPayee))*$
+      - name: paymentSourceIds
+        in: query
+        description: 'A comma-separated list of payment source IDs. Specify this parameter to include only activities that are related to the specified payment sources. `NOTE`: consumer PSPs MUST provide
+          at least one payment source ID to access this endpoint.'
+        required: false
+        schema:
+          type: string
+          example: 3c0ed42c-bd99-4cd3-8f58-84e54e1e79a6,9f480faa-d3d8-455a-9338-1ce9098d56de
+      - name: consentId
+        in: query
+        description: 'The UUID of a consent that was previously granted by the consumer. Specify this parameter to include only activities that relate to a specific consent.
+
+          Note: this only applies to commercial activities.'
+        required: false
+        schema:
+          type: string
+          format: uuid
+          example: 3c0ed42c-bd99-4cd3-8f58-84e54e1e79a6
+      - name: captureId
+        in: query
+        description: 'The UUID of a payment capture. Specify this parameter to include only activities that relate to a specific capture.
+
+          Note: this only applies to commercial activities that can relate to a capture (e.g. `EventDependentCapture`, `SingleImmediatePayment`, `SubscriptionPayment` and `Refund`).'
+        required: false
+        schema:
+          type: string
+          format: uuid
+          example: 3c0ed42c-bd99-4cd3-8f58-84e54e1e79a6
+      - name: onlyOpen
+        in: query
+        description: 'Specify this parameter to limit the list of activities to those that are still open.
+
+
+          For payment-related activities, an activity is considered open if the underlying SEPA transfer has not been created, or it has been created but was not marked as settled, yet. Non-payment-related
+          activities are never considered open.
+
+
+          **Example use case**
+
+
+          Use this parameter in combination with the `categories` parameter to retrieve a list of P2P requests that the consumer can approve, reject, or cancel: `/activities?categories=P2P&onlyOpen=true`.'
+        required: false
+        schema:
+          type: boolean
+          default: false
+      - name: createdAfter
+        in: query
+        description: Specify this parameter to include only activities that are created _after_ the specified date.
+        required: false
+        schema:
+          type: string
+          format: date-time
+          example: '2021-12-31T23:55:55Z'
+      - name: createdBefore
+        in: query
+        description: Specify this parameter to include only activities that are created _before_ the specified date.
+        required: false
+        schema:
+          type: string
+          format: date-time
+          example: '2021-12-31T23:55:55Z'
+      - name: updatedAfter
+        in: query
+        description: Specify this parameter to include activities that were updated only _after_ the specified date.
+        required: false
+        schema:
+          type: string
+          format: date-time
+          example: '2021-12-31T23:55:55Z'
+      - name: updatedBefore
+        in: query
+        description: Specify this parameter to include activities that are updated only _before_ the specified date.
+        required: false
+        schema:
+          type: string
+          format: date-time
+          example: '2021-12-31T23:55:55Z'
+      - name: sort
+        in: query
+        description: 'Specify this parameter to sort the results by the date the activity was created (`createdAt`) or by the time it was last updated (`updatedAt`).
+
+
+          Indicate the sorting direction with ascending (`asc`, "from older to younger") or descending (`desc`, "from younger to older").
+
+
+          Default is `updatedAt:desc`.'
+        required: false
+        schema:
+          type: string
+          enum:
+          - createdAt:asc
+          - createdAt:desc
+          - updatedAt:asc
+          - updatedAt:desc
+          default: updatedAt:desc
+      - name: detailedView
+        in: query
+        description: 'Specify this parameter to retrieve a list of detailed views of activities. ## Example use case
+
+
+          The list of detailed views provides more information about the activity that consumer PSPs can use to enrich the data of existing SCT Inst transaction. For example, the additional information
+          will include the activity history (lifecycle of the activity) and the initial payment plan (in the case of a refund).'
+        required: false
+        schema:
+          type: boolean
+          default: false
+      - $ref: '#/components/parameters/page'
+      - $ref: '#/components/parameters/size'
+      - name: authorisationId
+        in: query
+        description: Specify this parameter to filter activities by their authorisation id.
+        required: false
+        schema:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440005
+      responses:
+        '200':
+          description: OK
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/PagedSummaryCollectionResource'
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+        '401':
+          $ref: '#/components/responses/errorResponse401'
+        '403':
+          $ref: '#/components/responses/errorResponse403'
+        '415':
+          $ref: '#/components/responses/errorResponse415'
+        '500':
+          $ref: '#/components/responses/errorResponse500'
+        '502':
+          $ref: '#/components/responses/errorResponse502'
+        '503':
+          $ref: '#/components/responses/errorResponse503'
+components:
+  schemas:
+    P2PPaymentPayerPayeeOriginatorInfo:
+      type: object
+      description: Information about the user's originator account for a P2P payment.
+      required:
+      - consumerId
+      - paymentSourceId
+      - isPro
+      properties:
+        consumerId:
+          type: string
+          format: uuid
+          description: The ID of the P2P payment originator.
+        paymentSourceId:
+          type: string
+          format: uuid
+          description: The ID of the payment source that was used to settle the payment.
+        displayName:
+          type: string
+          description: The name of the P2P payment originator.
+        isPro:
+          type: boolean
+          description: Whether the originator account is a pro-user.
+    P2PRequestPaidHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Paid
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the request was paid.
+    P2PPaymentCreatedHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Created
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the payment was created.
+    C2cPaymentPlan:
+      title: Consumer-to-consumer (C2C) payment
+      description: A consumer-to-consumer (C2C) payment, containing the payment type, amount, ultimate beneficiary name, and IBAN.
+      type: object
+      properties:
+        type:
+          type: string
+          const: C2c
+        amount:
+          $ref: '#/components/schemas/Money'
+        ultimateBeneficiaryName:
+          type: string
+          minLength: 1
+          maxLength: 70
+          description: The name of the ultimate beneficiary of the payment.
+        ultimateBeneficiaryIban:
+          $ref: '#/components/schemas/IBAN'
+          description: The IBAN of the ultimate beneficiary of the payment.
+      required:
+      - type
+      - amount
+      - ultimateBeneficiaryName
+      - ultimateBeneficiaryIban
+    RefundHistoryItem:
+      type: object
+      oneOf:
+      - $ref: '#/components/schemas/Refunded'
+      discriminator:
+        propertyName: type
+        mapping:
+          Refunded: '#/components/schemas/Refunded'
+    Captured:
+      type: object
+      required:
+      - type
+      - occurredAt
+      - capturedAmount
+      - _links
+      properties:
+        type:
+          type: string
+          const: Captured
+        occurredAt:
+          format: date-time
+          type: string
+        capturedAmount:
+          $ref: '#/components/schemas/Money'
+        remainingAuthorisedAmount:
+          $ref: '#/components/schemas/Money'
+        _links:
+          type: object
+          required:
+          - captureActivity
+          properties:
+            captureActivity:
+              $ref: '#/components/schemas/link'
+              description: A link to the activity that represents the capture.
+            remainingAuthorisationActivity:
+              $ref: '#/components/schemas/link'
+              description: A link to the activity that represents the remaining authorisation. Only available if the remaining authorised amount is greater than zero.
+    SingleImmediatePaymentSummary:
+      type: object
+      description: A single immediate payment has been made.
+      allOf:
+      - $ref: '#/components/schemas/BaseSummary'
+      - type: object
+        required:
+        - type
+        - category
+        - amount
+        - merchantCategoryCode
+        - settlementPending
+        - failed
+        - authorisationId
+        - shop
+        properties:
+          type:
+            type: string
+            const: SingleImmediatePayment
+          category:
+            type: string
+            const: ECommerce
+          amount:
+            $ref: '#/components/schemas/Money'
+          merchantCategoryCode:
+            $ref: '#/components/schemas/MerchantCategoryCode'
+            description: 'The merchant category code of the merchant from which the purchase was made.  See ISO 18245:2023 for more information on available merchant category codes.
+
+              Consumer PSPs can use this information to display a logo or provide contextual information when displaying  the activity to the consumer.'
+          settlementPending:
+            type: boolean
+            description: A transaction is considered pending when it has been authorised but has yet to be settled. `settlementPending` would be `false` if the authorisation has failed, been rejected, or
+              if the transaction has already been settled.
+          failed:
+            type: boolean
+            description: Indicates whether the single immediate payment failed.
+          refundedAmount:
+            $ref: '#/components/schemas/Money'
+            description: The amount that was refunded for this payment.  This amount can cover a part of the original amount, the full amount, or even more than the original amount.
+          authorisationId:
+            type: string
+            description: The [ID of the authorisation](ref:create-consumer-psp-authorisation) that was given to the consumer PSP when the payment request has been created. Consumer PSPs can use this field
+              to link an EPI activity to their SEPA transaction.
+          captureId:
+            type: string
+            description: The ID of the capture, as is returned by EPI central services. Consumer PSPs can use this field to link an EPI activity to their SEPA transaction.
+          originatorPspReference:
+            $ref: '#/components/schemas/EComOriginatorPspReference'
+          shop:
+            $ref: '#/components/schemas/Shop'
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to the details of the activity.
+    Activity:
+      type: object
+      description: A detailed representation of an activity.
+      oneOf:
+      - $ref: '#/components/schemas/SingleImmediatePayment'
+      - $ref: '#/components/schemas/EventDependentReservation'
+      - $ref: '#/components/schemas/EventDependentCapture'
+      - $ref: '#/components/schemas/RefundActivity'
+      - $ref: '#/components/schemas/SubscriptionPayment'
+      - $ref: '#/components/schemas/P2PRequestPayer'
+      - $ref: '#/components/schemas/P2PRequestPayee'
+      - $ref: '#/components/schemas/P2PPaymentPayer'
+      - $ref: '#/components/schemas/P2PPaymentPayee'
+      - $ref: '#/components/schemas/P2PPaymentPayerAndPayee'
+      - $ref: '#/components/schemas/P2POpenRequestPayer'
+      - $ref: '#/components/schemas/P2POpenRequestPayee'
+      discriminator:
+        propertyName: type
+        mapping:
+          SingleImmediatePayment: '#/components/schemas/SingleImmediatePayment'
+          EventDependentReservation: '#/components/schemas/EventDependentReservation'
+          EventDependentCapture: '#/components/schemas/EventDependentCapture'
+          Refund: '#/components/schemas/RefundActivity'
+          SubscriptionPayment: '#/components/schemas/SubscriptionPayment'
+          P2PPaymentPayer: '#/components/schemas/P2PPaymentPayer'
+          P2PPaymentPayee: '#/components/schemas/P2PPaymentPayee'
+          P2PPaymentPayerAndPayee: '#/components/schemas/P2PPaymentPayerAndPayee'
+          P2PRequestPayer: '#/components/schemas/P2PRequestPayer'
+          P2PRequestPayee: '#/components/schemas/P2PRequestPayee'
+          P2POpenRequestPayer: '#/components/schemas/P2POpenRequestPayer'
+          P2POpenRequestPayee: '#/components/schemas/P2POpenRequestPayee'
+    EventDependentCaptureSummary:
+      type: object
+      description: A capture for a event-dependent payment request has been performed.
+      allOf:
+      - $ref: '#/components/schemas/BaseSummary'
+      - type: object
+        required:
+        - type
+        - category
+        - amount
+        - paymentSourceId
+        - shop
+        - merchantCategoryCode
+        - failed
+        - _links
+        properties:
+          type:
+            type: string
+            const: EventDependentCapture
+          category:
+            type: string
+            const: ECommerce
+          amount:
+            $ref: '#/components/schemas/Money'
+          paymentSourceId:
+            type: string
+            format: uuid
+            description: The ID of the payment source.
+          shop:
+            $ref: '#/components/schemas/Shop'
+          merchantCategoryCode:
+            $ref: '#/components/schemas/MerchantCategoryCode'
+            description: 'The merchant category code of the merchant from which the purchase was made.  See ISO 18245:2023 for more information on available merchant category codes.
+
+              Consumer PSPs can use this information to show a logo or provide contextual information when displaying the activity to the consumer.'
+          failed:
+            type: boolean
+            description: Indicates whether the event-dependant capture failed.
+          refundedAmount:
+            allOf:
+            - $ref: '#/components/schemas/Money'
+            - type: object
+              description: The amount that was refunded for this payment. This amount can cover a part of the original amount, the full amount, or even more than the original amount.
+          captureId:
+            type: string
+            description: The ID of the capture, as is returned by EPI central services. Consumer PSPs can use this field to link an EPI activity to their SEPA transaction.
+          originatorPspReference:
+            $ref: '#/components/schemas/EComOriginatorPspReference'
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                allOf:
+                - $ref: '#/components/schemas/link'
+                  description: A link to the details of the activity.
+    P2PRequestPayeeSummary:
+      type: object
+      description: A p2p request has been created.
+      allOf:
+      - $ref: '#/components/schemas/P2PActivitySummary'
+      - type: object
+        required:
+        - type
+        - amount
+        - payee
+        - payer
+        - cancelled
+        - declined
+        - expired
+        - expiresAt
+        properties:
+          type:
+            type: string
+            const: P2PRequestPayeeSummary
+          category:
+            type: string
+            const: P2P
+          payee:
+            $ref: '#/components/schemas/P2PRequestOriginatorInfo'
+          payer:
+            description: The payer's information.
+            $ref: '#/components/schemas/P2PCounterpartyInfo'
+          cancelled:
+            type: boolean
+            description: Indicates whether the request has been cancelled.
+          declined:
+            type: boolean
+            description: Indicates whether the request has been declined by the payer.
+          expired:
+            type: boolean
+            description: Indicates whether the request has expired.
+          expiresAt:
+            type: string
+            format: date-time
+            description: The date and time when this P2P request expires.
+            example: '2025-01-01T10:20:30.061200Z'
+          _links:
+            type: object
+            required:
+            - self
+            - cancellation
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to this activity.
+              cancellation:
+                $ref: '#/components/schemas/link'
+                description: Cancel the P2P request.
+    P2PRequestPayeeUnblockedHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: PayeeUnblocked
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the request payee was unblocked.
+    ConsumerPresentFuturePaymentPlan:
+      title: Consumer present, future payment
+      description: A consumer present future payment, containing the payment type, amount and the 'consumer present future payment' specific information.
+      type: object
+      properties:
+        type:
+          type: string
+          const: ConsumerPresentFuturePayment
+        amount:
+          $ref: '#/components/schemas/Money'
+        maxAuthToCaptureTime:
+          type: integer
+          description: The maximum time, in seconds, between authorisation and capture.
+        multiCapturesAllowed:
+          type: boolean
+          description: Indicates if multiple captures are allowed.
+      required:
+      - type
+      - amount
+      - maxAuthToCaptureTime
+      - multiCapturesAllowed
+    EventDependentReservation:
+      allOf:
+      - $ref: '#/components/schemas/EComActivity'
+      - type: object
+        required:
+        - type
+        - category
+        - eventDependentParameters
+        - history
+        - amount
+        - cancelled
+        - failed
+        properties:
+          type:
+            type: string
+            const: EventDependentReservation
+          category:
+            type: string
+            const: ECommerce
+          eventDependentParameters:
+            $ref: '#/components/schemas/EventDependentParameters'
+          amount:
+            $ref: '#/components/schemas/Money'
+          remainingReservedAmount:
+            $ref: '#/components/schemas/Money'
+            description: 'The remaining amount that can be captured from the reservation if the reservation has not yet been marked as final.
+
+              '
+          history:
+            type: array
+            description: "The history of the payment-related changes in this activity. \n"
+            items:
+              $ref: '#/components/schemas/EventDependentHistoryItem'
+          authorisationId:
+            type: string
+            description: 'The [ID of the authorisation](https://docs.epicompany.eu/platform/reference/create-consumer-psp-authorisation) that was given to the consumer PSP when the payment request has been
+              created. Consumer PSPs can use this field to link an EPI activity to their SEPA transaction.
+
+              '
+          cancelled:
+            type: boolean
+            description: "True, if either the acceptor cancelled the event-dependent payment or if the acceptor did not capture the entire amount before the consent expired. \n"
+          failed:
+            type: boolean
+            description: 'True, if the authorisation has been rejected or has failed.
+
+              '
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                allOf:
+                - $ref: '#/components/schemas/link'
+                  description: 'A link to this activity.
+
+                    '
+    P2POpenRequestPaidHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Paid
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the open request was paid.
+    P2PPaymentPayerSummary:
+      type: object
+      description: A payment through a p2p payment has been made.
+      allOf:
+      - $ref: '#/components/schemas/P2PActivitySummary'
+      - type: object
+        required:
+        - type
+        - amount
+        - payer
+        - payee
+        - pending
+        - actionNeeded
+        - failed
+        properties:
+          type:
+            type: string
+            const: P2PPaymentPayerSummary
+          category:
+            type: string
+            const: P2P
+          payerConsumerId:
+            type: string
+            format: uuid
+            description: The ID of the P2P payment originator.
+          payer:
+            $ref: '#/components/schemas/P2PPaymentOriginatorInfo'
+          payee:
+            description: The payee's information.
+            $ref: '#/components/schemas/P2PCounterpartyInfo'
+          pending:
+            type: boolean
+            description: Indicates whether the P2P payment is pending.
+          actionNeeded:
+            type: boolean
+            description: Indicates whether the P2P payment requires action from the consumer.
+          failed:
+            type: boolean
+            description: Indicates whether the P2P payment has failed.
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to the details of the activity.
+              approval:
+                $ref: '#/components/schemas/link'
+                description: Approve the P2P payment.
+              cancellation:
+                $ref: '#/components/schemas/link'
+                description: Cancel the P2P payment.
+    P2POpenRequestPayeeSummary:
+      type: object
+      description: A p2p open request has been created.
+      allOf:
+      - $ref: '#/components/schemas/P2PActivitySummary'
+      - type: object
+        required:
+        - type
+        - payee
+        - payers
+        - cancelled
+        - declined
+        - expired
+        - expiresAt
+        properties:
+          type:
+            type: string
+            const: P2POpenRequestPayeeSummary
+          category:
+            type: string
+            const: P2P
+          payee:
+            $ref: '#/components/schemas/P2POpenRequestOriginatorInfo'
+          payers:
+            type: array
+            items:
+              $ref: '#/components/schemas/P2POpenRequestOriginatorCounterpartyInfo'
+          cancelled:
+            type: boolean
+            description: Indicates whether the open request has been cancelled.
+          declined:
+            type: boolean
+            description: Indicates whether the open request has been declined by the payer.
+          expired:
+            type: boolean
+            description: Indicates whether the open request has expired.
+          expiresAt:
+            format: date-time
+            type: string
+            description: The date and time at which the P2P open request expires. After expiration, the P2P request cannot be used to make payments.
+            example: '2025-01-01T10:20:30.061200Z'
+          _links:
+            type: object
+            required:
+            - self
+            - paymentsList
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to this activity.
+              cancellation:
+                $ref: '#/components/schemas/link'
+                description: Cancel the P2P open request.
+              paymentsList:
+                type: array
+                items:
+                  $ref: '#/components/schemas/link'
+                description: A list of links to activities of payments made based off of this request.
+    P2PPaymentPayerPayeeRecipientInfo:
+      type: object
+      description: Information about the user's recipient account for a P2P payment.
+      required:
+      - paymentSourceId
+      - isPro
+      properties:
+        consumerId:
+          type: string
+          format: uuid
+          description: The ID of the P2P payment recipient.
+        paymentSourceId:
+          type: string
+          format: uuid
+          description: The ID of the payment source that was used to receive the payment.
+        displayName:
+          type: string
+          description: The name of the P2P payment recipient.
+        isPro:
+          type: boolean
+          description: Whether the recipient account is a pro-user.
+    BaseSummary:
+      type: object
+      required:
+      - id
+      - category
+      - consumerId
+      - consentId
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          format: uuid
+          type: string
+          description: The ID of this activity.
+        category:
+          type: string
+          description: A category groups multiple types. Consumer PSPs can use this to filter and cluster activities.
+        consumerId:
+          format: uuid
+          type: string
+          description: The ID of the consumer this activity is related to.
+        consentId:
+          format: uuid
+          type: string
+          description: The ID of the consent this activity is related to.
+        createdAt:
+          format: date-time
+          type: string
+          description: The date and time when this activity was created.
+        updatedAt:
+          format: date-time
+          type: string
+          description: The date and time when this activity was updated.
+    P2PPaymentPayer:
+      allOf:
+      - $ref: '#/components/schemas/P2PActivity'
+      - type: object
+        required:
+        - type
+        - amount
+        - payer
+        - payee
+        - history
+        properties:
+          type:
+            type: string
+            const: P2PPaymentPayer
+          category:
+            type: string
+            const: P2P
+          payer:
+            $ref: '#/components/schemas/P2PPaymentOriginatorInfo'
+          payee:
+            description: The payee's information.
+            $ref: '#/components/schemas/P2PCounterpartyInfo'
+          history:
+            type: array
+            description: 'The history of the payment-related changes in this activity. '
+            items:
+              $ref: '#/components/schemas/P2PPaymentPayerHistoryItems'
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to this activity.
+              approval:
+                $ref: '#/components/schemas/link'
+                description: Approve the P2P payment.
+              cancellation:
+                $ref: '#/components/schemas/link'
+                description: Cancel the P2P payment.
+    SubscriptionHistoryItem:
+      type: object
+      oneOf:
+      - $ref: '#/components/schemas/Authorised'
+      - $ref: '#/components/schemas/Settled'
+      - $ref: '#/components/schemas/Refunded'
+      - $ref: '#/components/schemas/Failed'
+      discriminator:
+        propertyName: type
+        mapping:
+          Authorised: '#/components/schemas/Authorised'
+          Settled: '#/components/schemas/Settled'
+          Refunded: '#/components/schemas/Refunded'
+          Failed: '#/components/schemas/Failed'
+    P2PPaymentSettledHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Settled
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the payment was settled.
+    IBAN:
+      type: string
+    EventDependentParameters:
+      type: object
+      description: The parameters of the event-dependent payment plan.
+      required:
+      - initiallyAuthorisedUntil
+      - captureTrigger
+      - multiCaptures
+      properties:
+        initiallyAuthorisedUntil:
+          type: string
+          format: date-time
+          description: 'The date and time until the initially authorised amount expires.
+
+            '
+        captureTrigger:
+          $ref: '#/components/schemas/CaptureTrigger'
+        multiCaptures:
+          type: boolean
+          description: 'Indicates whether multiple captures are allowed for the payment plan.
+
+            '
+    Cancelled:
+      type: object
+      required:
+      - type
+      - occurredAt
+      - cancelledAmount
+      - reason
+      - _links
+      properties:
+        type:
+          type: string
+          const: Cancelled
+        occurredAt:
+          format: date-time
+          type: string
+        cancelledAmount:
+          $ref: '#/components/schemas/Money'
+        reason:
+          type: string
+          enum:
+          - Expiry
+          - CancelledByMerchant
+        _links:
+          properties:
+            authorisationActivity:
+              $ref: '#/components/schemas/link'
+              description: A link to the activity that represents the remaining authorisation. Only available if the remaining authorised amount is greater than zero.
+    P2POpenRequestCancelledHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Cancelled
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the open request was cancelled.
+    EventDependentCapture:
+      allOf:
+      - $ref: '#/components/schemas/EComActivity'
+      - type: object
+        required:
+        - type
+        - category
+        - eventDependentParameters
+        - history
+        - captureId
+        - amount
+        properties:
+          type:
+            type: string
+            const: EventDependentCapture
+          category:
+            type: string
+            const: ECommerce
+          eventDependentParameters:
+            $ref: '#/components/schemas/EventDependentParameters'
+          failed:
+            type: boolean
+            description: 'Indicates whether the event dependant capture failed.
+
+              '
+          amount:
+            $ref: '#/components/schemas/Money'
+          refundedAmount:
+            $ref: '#/components/schemas/Money'
+            description: The amount that was refunded for this payment. This amount can cover a part of the original amount, the full amount, or even more than the original amount.
+          history:
+            type: array
+            description: "The history of the payment-related changes in this activity. \n"
+            items:
+              $ref: '#/components/schemas/EventDependentHistoryItem'
+          captureId:
+            type: string
+            description: The ID of the capture, as is returned by EPI central services. Consumer PSPs can use this field to link an EPI activity to their SEPA transaction.
+          originatorPspReference:
+            $ref: '#/components/schemas/EComOriginatorPspReference'
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                allOf:
+                - $ref: '#/components/schemas/link'
+                  description: 'A link to this activity.
+
+                    '
+    SummaryCollectionEmbed:
+      type: object
+      properties:
+        type:
+          const: ActivitySummaries
+        activities:
+          description: List of activity summaries
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivitySummary'
+    MerchantCategoryCode:
+      type: string
+      maxLength: 4
+      minLength: 4
+      pattern: ^\d{4}$
+      description: ISO 18245:2023 defines a merchant category code (MCC) as "a code used to classify the business entity by type of activity in which it is engaged, to facilitate the evaluation of various
+        risks undertaken by the entity and to better identify its transaction patterns and characteristics." The MCC is a four-digit number that is assigned to a business by credit card companies (for example,
+        MasterCard or VISA) when the business first starts to accept one of these cards as a form of payment.
+      example: '5812'
+    P2PPaymentRecipientInfo:
+      type: object
+      description: Information about the recipient of a P2P payment.
+      required:
+      - paymentSourceId
+      properties:
+        consumerId:
+          type: string
+          format: uuid
+          description: The ID of the P2P payment recipient.
+        paymentSourceId:
+          type: string
+          format: uuid
+          description: The ID of the payment source that received the payment.
+    Settled:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Settled
+        occurredAt:
+          format: date-time
+          type: string
+    Refunded:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Refunded
+        occurredAt:
+          format: date-time
+          type: string
+        amount:
+          $ref: '#/components/schemas/Money'
+        _links:
+          type: object
+          required:
+          - refundActivity
+          properties:
+            refundActivity:
+              $ref: '#/components/schemas/link'
+              description: A link to the activity that represents the refund.
+            refundedActivity:
+              $ref: '#/components/schemas/link'
+              description: 'A deep link to the payment activity for which the refund was created.
+
+                '
+    RefundSummary:
+      type: object
+      description: A refund for a payment request has been made.
+      allOf:
+      - $ref: '#/components/schemas/BaseSummary'
+      - type: object
+        required:
+        - type
+        - category
+        - originAmount
+        - refundedAmount
+        - shop
+        - merchantCategoryCode
+        - refundId
+        - refundType
+        - captureId
+        properties:
+          type:
+            type: string
+            const: Refund
+          category:
+            type: string
+            const: ECommerce
+          originAmount:
+            $ref: '#/components/schemas/Money'
+          refundedAmount:
+            $ref: '#/components/schemas/Money'
+          shop:
+            $ref: '#/components/schemas/Shop'
+          merchantCategoryCode:
+            $ref: '#/components/schemas/MerchantCategoryCode'
+            description: 'The merchant category code of the merchant from which the purchase was made.  See ISO 18245:2023 for more information on available merchant category codes.
+
+
+              Consumer PSPs can use this information to display a logo or provide contextual information when displaying the activity to the consumer.'
+          refundId:
+            type: string
+            format: uuid
+            description: The ID of the refund in EPI central services. Consumer PSPs can use this field to link an EPI activity to their SEPA transaction. The refund ID can be found either in the remittance
+              info (T009, the first UUID) or in the originator's reference (T014) but without any '-'.
+          refundType:
+            type: string
+            enum:
+            - FullRefund
+            - PartialRefund
+            - OverRefund
+            description: 'The type of the refund that was requested by the merchant.
+
+              '
+          captureId:
+            type: string
+            format: uuid
+            description: The ID of the capture in EPI central services that this refund is related to.
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to the details of the activity.
+    SingleImmediatePayment:
+      allOf:
+      - $ref: '#/components/schemas/EComActivity'
+      - type: object
+        required:
+        - type
+        - category
+        - history
+        - amount
+        - authorisationId
+        properties:
+          failed:
+            type: boolean
+            description: Indicates whether the single immediate payment failed
+          settlementPending:
+            type: boolean
+            description: A transaction is considered pending when it has been authorised but has yet to be settled. `settlementPending` would be `false` if the authorisation has failed, been rejected, or
+              if the transaction has already been settled.
+          amount:
+            $ref: '#/components/schemas/Money'
+          refundedAmount:
+            $ref: '#/components/schemas/Money'
+            description: The amount that was refunded for this payment. This amount can cover a part of the original amount, the full amount, or even more than the original amount.
+          authorisationId:
+            type: string
+            description: The [ID of the authorisation](ref:create-consumer-psp-authorisation) that was given to the consumer PSP when the payment request has been created. Consumer PSPs can use this field
+              to link an EPI activity to their SEPA transaction.
+          captureId:
+            type: string
+            format: uuid
+            description: The UUID of the capture for this payment if the capture did occur.
+          history:
+            type: array
+            description: 'The history of the payment-related changes in this activity. '
+            items:
+              $ref: '#/components/schemas/SingleImmediateHistoryItem'
+          type:
+            type: string
+            const: SingleImmediatePayment
+          category:
+            type: string
+            const: ECommerce
+          originatorPspReference:
+            $ref: '#/components/schemas/EComOriginatorPspReference'
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                allOf:
+                - $ref: '#/components/schemas/link'
+                  description: 'A link to this activity.
+
+                    '
+    SingleImmediateHistoryItem:
+      type: object
+      oneOf:
+      - $ref: '#/components/schemas/Authorised'
+      - $ref: '#/components/schemas/Settled'
+      - $ref: '#/components/schemas/Refunded'
+      - $ref: '#/components/schemas/Failed'
+      discriminator:
+        propertyName: type
+        mapping:
+          Authorised: '#/components/schemas/Authorised'
+          Settled: '#/components/schemas/Settled'
+          Refunded: '#/components/schemas/Refunded'
+          Failed: '#/components/schemas/Failed'
+    P2POpenRequestPayer:
+      type: object
+      description: An activity representing the payer of a paid open P2P request.
+      allOf:
+      - $ref: '#/components/schemas/P2PActivity'
+      - type: object
+        required:
+        - type
+        - payers
+        - payee
+        - history
+        - expiresAt
+        properties:
+          type:
+            type: string
+            const: P2POpenRequestPayer
+          category:
+            type: string
+            const: P2P
+          payers:
+            type: array
+            items:
+              $ref: '#/components/schemas/P2POpenRequestRecipientInfo'
+          payee:
+            description: The payee's information.
+            $ref: '#/components/schemas/P2PCounterpartyInfo'
+          history:
+            type: array
+            description: 'The history of the payment-related changes in this activity. '
+            items:
+              $ref: '#/components/schemas/P2POpenRequestPaymentReceivedHistoryItem'
+          expiresAt:
+            format: date-time
+            type: string
+            description: The date and time at which the P2P open request expires. After expiration, the P2P request cannot be used to make payments.
+            example: '2025-01-01T10:20:30.061200Z'
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to this activity.
+              approval:
+                $ref: '#/components/schemas/link'
+                description: Approve a payment for the P2P open request.
+              rejection:
+                $ref: '#/components/schemas/link'
+                description: Reject the P2P open request.
+    Money:
+      title: Money
+      type: object
+      properties:
+        euroCents:
+          type: integer
+          description: 'The minimum `euroCents` value is `1`. `euroCents: 100` represents one euro.'
+      description: 'Amounts of money in the API are represented as objects with a single property that describes both the currency (for example, euro) and the unit (which is usually the minor unit of the
+        currency, for example, cents).
+
+
+        Currently, the only supported representation is euroCents, as shown in the example.
+
+
+        Other currencies will be added as needed.'
+      examples:
+      - euroCents: 4900
+    P2PRequestPayee:
+      type: object
+      description: An activity representing a received P2P request.
+      allOf:
+      - $ref: '#/components/schemas/P2PActivity'
+      - type: object
+        required:
+        - type
+        - amount
+        - payee
+        - payer
+        - history
+        - expiresAt
+        properties:
+          type:
+            type: string
+            const: P2PRequestPayee
+          category:
+            type: string
+            const: P2P
+          payee:
+            $ref: '#/components/schemas/P2PRequestOriginatorInfo'
+          payer:
+            description: The payer's information.
+            $ref: '#/components/schemas/P2PCounterpartyInfo'
+          history:
+            type: array
+            description: 'The history of the payment-related changes in this activity. '
+            items:
+              type: object
+              description: A summary representation of an activity.
+              oneOf:
+              - $ref: '#/components/schemas/P2PRequestCreatedHistoryItem'
+              - $ref: '#/components/schemas/P2PRequestCancelledHistoryItem'
+              - $ref: '#/components/schemas/P2PRequestDeclinedHistoryItem'
+              - $ref: '#/components/schemas/P2PRequestExpiredHistoryItem'
+              - $ref: '#/components/schemas/P2PRequestPaidHistoryItem'
+              discriminator:
+                propertyName: type
+                mapping:
+                  Created: '#/components/schemas/P2PRequestCreatedHistoryItem'
+                  Cancelled: '#/components/schemas/P2PRequestCancelledHistoryItem'
+                  Declined: '#/components/schemas/P2PRequestDeclinedHistoryItem'
+                  Expired: '#/components/schemas/P2PRequestExpiredHistoryItem'
+                  Paid: '#/components/schemas/P2PRequestPaidHistoryItem'
+          expiresAt:
+            type: string
+            format: date-time
+            description: The date and time when this P2P request expires.
+            example: '2025-01-01T10:20:30.061200Z'
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to this activity.
+              cancellation:
+                $ref: '#/components/schemas/link'
+                description: Cancel the P2P request.
+    P2PPaymentExpiredHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Expired
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the payment expired.
+    Failed:
+      type: object
+      required:
+      - type
+      - occurredAt
+      - failureReason
+      properties:
+        type:
+          type: string
+          const: Failed
+        failureReason:
+          type: string
+          enum:
+          - InsufficientFunds
+          - LimitExceeded
+          - Others
+        occurredAt:
+          format: date-time
+          type: string
+    P2POpenRequestDeclinedHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Declined
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the open request was declined.
+    P2PRequestPayer:
+      allOf:
+      - $ref: '#/components/schemas/P2PActivity'
+      - type: object
+        required:
+        - type
+        - amount
+        - payer
+        - payee
+        - history
+        - expiresAt
+        properties:
+          type:
+            type: string
+            const: P2PRequestPayer
+          category:
+            type: string
+            const: P2P
+          payer:
+            $ref: '#/components/schemas/P2PRequestRecipientInfo'
+          payee:
+            description: The payee's information.
+            $ref: '#/components/schemas/P2PCounterpartyInfo'
+          history:
+            type: array
+            description: 'The history of the payment-related changes in this activity. '
+            items:
+              type: object
+              description: A summary representation of an activity.
+              oneOf:
+              - $ref: '#/components/schemas/P2PRequestCreatedHistoryItem'
+              - $ref: '#/components/schemas/P2PRequestCancelledHistoryItem'
+              - $ref: '#/components/schemas/P2PRequestDeclinedHistoryItem'
+              - $ref: '#/components/schemas/P2PRequestExpiredHistoryItem'
+              - $ref: '#/components/schemas/P2PRequestPayeeBlockedHistoryItem'
+              - $ref: '#/components/schemas/P2PRequestPayeeUnblockedHistoryItem'
+              discriminator:
+                propertyName: type
+                mapping:
+                  Created: '#/components/schemas/P2PRequestCreatedHistoryItem'
+                  Cancelled: '#/components/schemas/P2PRequestCancelledHistoryItem'
+                  Declined: '#/components/schemas/P2PRequestDeclinedHistoryItem'
+                  Expired: '#/components/schemas/P2PRequestExpiredHistoryItem'
+                  PayeeBlocked: '#/components/schemas/P2PRequestPayeeBlockedHistoryItem'
+                  PayeeUnblocked: '#/components/schemas/P2PRequestPayeeUnblockedHistoryItem'
+          expiresAt:
+            type: string
+            format: date-time
+            description: The date and time when this P2P request expires.
+            example: '2025-01-01T10:20:30.061200Z'
+          _links:
+            type: object
+            required:
+            - self
+            - blockContact
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to this activity.
+              approval:
+                $ref: '#/components/schemas/link'
+                description: Approve a payment for the P2P request.
+              rejection:
+                $ref: '#/components/schemas/link'
+                description: Reject the P2P request.
+              blockContact:
+                $ref: '#/components/schemas/link'
+                description: Block the contact who sent the P2P request.
+              retryPayment:
+                $ref: '#/components/schemas/link'
+                description: Retry the attempt to pay this P2P request.
+    P2POpenRequestRecipientInfo:
+      type: object
+      description: Information about the recipient of a P2P open request.
+      required:
+      - paymentSourceId
+      properties:
+        consumerId:
+          type: string
+          format: uuid
+          description: The ID of the P2P open request recipient.
+        paymentSourceId:
+          type: string
+          format: uuid
+          description: The ID of the payment source that was used to pay the open request.
+    SubscriptionPayment:
+      allOf:
+      - $ref: '#/components/schemas/EComActivity'
+      - type: object
+        required:
+        - type
+        - category
+        - history
+        - amount
+        - authorisationId
+        - subscriptionStart
+        - firstPayment
+        - latestPayment
+        properties:
+          failed:
+            type: boolean
+            description: Indicates whether the subscription payment failed
+          settlementPending:
+            type: boolean
+            description: A transaction is considered pending when it has been authorised but has yet to be settled. `settlementPending` would be `false` if the authorisation has failed, been rejected, or
+              if the transaction has already been settled.
+          amount:
+            $ref: '#/components/schemas/Money'
+          refundedAmount:
+            $ref: '#/components/schemas/Money'
+            description: The amount that was refunded for this payment. This amount can cover a part of the original amount, the full amount, or even more than the original amount.
+          authorisationId:
+            type: string
+            description: The [ID of the authorisation](ref:create-consumer-psp-authorisation) that was given to the consumer PSP when the payment request has been created. Consumer PSPs can use this field
+              to link an EPI activity to their SEPA transaction.
+          captureId:
+            type: string
+            format: uuid
+            description: The UUID of the capture for this payment if the capture did occur.
+          history:
+            type: array
+            description: 'The history of the payment-related changes in this activity. '
+            items:
+              $ref: '#/components/schemas/SubscriptionHistoryItem'
+          type:
+            type: string
+            const: SubscriptionPayment
+          category:
+            type: string
+            const: ECommerce
+          originatorPspReference:
+            $ref: '#/components/schemas/EComOriginatorPspReference'
+          subscriptionStart:
+            format: date-time
+            type: string
+            description: The date and time when the subscription started.
+          firstPayment:
+            format: date-time
+            type: string
+            description: The date and time of the first payment of this subscription.
+          latestPayment:
+            format: date-time
+            type: string
+            description: The date and time of the latest payment of this subscription.
+          cancellationDate:
+            format: date-time
+            type: string
+            description: If set, this is the end date of this subscription.
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                allOf:
+                - $ref: '#/components/schemas/link'
+                  description: 'A link to this activity.
+
+                    '
+    ActivityCollectionEmbed:
+      type: object
+      properties:
+        type:
+          const: Activities
+        activities:
+          description: List of activities
+          type: array
+          items:
+            $ref: '#/components/schemas/Activity'
+    P2POpenRequestCreatedHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Created
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the open request was created.
+    Shop:
+      type: object
+      description: The shop where the purchase was made.
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          description: The name of the shop, as provided by the acceptor PSP.
+        websiteUrl:
+          format: uri
+          type: string
+          description: A URL to the shop.
+        logoUrl:
+          format: uri
+          type: string
+          description: A URL to the logo of the shop in SVG, JPEG, or PNG format. The maximum file size is 100,000 bytes (100 KB).
+    P2PPaymentSentHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Sent
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the payment was accepted.
+    P2PPaymentPayerUnblockedHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: PayerUnblocked
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the payment payer was unblocked.
+    P2PRequestCancelledHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Cancelled
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the request was cancelled.
+    P2POpenRequestPaymentReceivedHistoryItem:
+      type: object
+      required:
+      - type
+      - p2pPaymentActivityId
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: PaymentReceived
+        p2pPaymentActivityId:
+          type: string
+          format: uuid
+          description: The ID of the payment activity.
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the open request received a payment.
+    PaymentReference:
+      title: Payment Reference
+      type: string
+      description: 'The reference that is used for the payment. Limited to 140 SEPA characters.
+
+        This will be used within the remittance information of the payment.
+
+        Set this field only in a P2Pro transaction context.'
+      pattern: '[-a-zA-Z0-9/?:().,''+\s]*'
+      maxLength: 140
+    P2PPaymentFailedHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Failed
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the payment failed.
+    P2PPaymentPayerAndPayeeSummary:
+      type: object
+      description: A self-payment through a p2p payment has been made.
+      allOf:
+      - $ref: '#/components/schemas/P2PActivitySummary'
+      - type: object
+        required:
+        - type
+        - amount
+        - payer
+        - payee
+        - pending
+        - actionNeeded
+        - failed
+        properties:
+          type:
+            type: string
+            const: P2PPaymentPayerAndPayeeSummary
+          category:
+            type: string
+            const: P2P
+          payer:
+            $ref: '#/components/schemas/P2PPaymentPayerPayeeOriginatorInfo'
+          payee:
+            $ref: '#/components/schemas/P2PPaymentPayerPayeeRecipientInfo'
+          pending:
+            type: boolean
+            description: Indicates whether the P2P payment is pending.
+          actionNeeded:
+            type: boolean
+            description: Indicates whether the P2P payment requires action from the consumer.
+          failed:
+            type: boolean
+            description: Indicates whether the P2P payment has failed.
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to this activity.
+              approval:
+                $ref: '#/components/schemas/link'
+                description: Approve the P2P payment.
+              cancellation:
+                $ref: '#/components/schemas/link'
+                description: Cancel the P2P payment.
+    P2PCounterpartyInfo:
+      type: object
+      required:
+      - isPro
+      properties:
+        displayName:
+          type: string
+          description: The name of the user.
+        isPro:
+          type: boolean
+          description: Indicates whether the user is a pro-user.
+    EventDependentPaymentPlan:
+      title: Event dependent payment
+      description: An event dependent payment, containing the payment type, the amount, and the event-dependent specific information.
+      type: object
+      properties:
+        type:
+          type: string
+          const: EventDependent
+        amount:
+          $ref: '#/components/schemas/Money'
+        captureTrigger:
+          type: string
+          description: The trigger for capturing the payment.
+          enum:
+          - Shipping
+          - Delivery
+          - Availability
+          - ServiceFulfilment
+          - Other
+        amountPaymentType:
+          type: string
+          enum:
+          - Pay
+          - PayUpTo
+          description: Indicates if the consumer must be charged the complete amount or up to the given amount.
+        maxAuthToCaptureTime:
+          type: integer
+          description: The maximum time, in seconds, between authorisation and capture.
+        multiCapturesAllowed:
+          type: boolean
+          description: Indicates if multiple captures are allowed.
+        reason:
+          type: string
+          description: The reason why the payment will be captured in multiple payment captures.
+      required:
+      - type
+      - amount
+      - captureTrigger
+      - amountPaymentType
+      - maxAuthToCaptureTime
+      - multiCapturesAllowed
+    P2PActivity:
+      type: object
+      required:
+      - id
+      - type
+      - createdAt
+      - updatedAt
+      - _links
+      properties:
+        id:
+          format: uuid
+          type: string
+          description: The ID of this activity.
+        resourceId:
+          format: uuid
+          type: string
+          description: The ID of the resource related to this activity. This is the `p2pPaymentId` in case of a P2PPayment activity, and it is the `p2pRequestId` in case of a P2PRequest activity.
+        type:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Money'
+        message:
+          type: object
+          description: Consumers can add a message to P2P payments, requests, and open requests.
+          required:
+          - origin
+          properties:
+            content:
+              type: string
+              description: The content of the message.
+            title:
+              type: string
+              description: The title of the message.
+            origin:
+              type: string
+              description: Indicates if the retriever of this activity is the sender or the receiver of the message.
+              enum:
+              - Sender
+              - Receiver
+        paymentReference:
+          $ref: '#/components/schemas/PaymentReference'
+        createdAt:
+          format: date-time
+          type: string
+          description: The date and time when this activity was created.
+        updatedAt:
+          format: date-time
+          type: string
+          description: The date and time when this activity was updated.
+        _links:
+          type: object
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+              description: A link to this activity.
+    P2PPaymentPayerAndPayee:
+      allOf:
+      - $ref: '#/components/schemas/P2PActivity'
+      - type: object
+        required:
+        - type
+        - amount
+        - payer
+        - payee
+        - history
+        properties:
+          type:
+            type: string
+            const: P2PPaymentPayerAndPayee
+          category:
+            type: string
+            const: P2P
+          payer:
+            $ref: '#/components/schemas/P2PPaymentPayerPayeeOriginatorInfo'
+          payee:
+            $ref: '#/components/schemas/P2PPaymentPayerPayeeRecipientInfo'
+          history:
+            type: array
+            description: 'The history of the payment-related changes in this activity. '
+            items:
+              $ref: '#/components/schemas/P2PPaymentPayerHistoryItems'
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to this activity.
+              approval:
+                $ref: '#/components/schemas/link'
+                description: Approve the P2P payment.
+              cancellation:
+                $ref: '#/components/schemas/link'
+                description: Cancel the P2P payment.
+    SubscriptionPaymentPlan:
+      title: Subscription payment
+      description: A subscription-based payment plan, containing the frequency, the amount, and other subscription-specific information.
+      type: object
+      properties:
+        type:
+          type: string
+          const: Subscription
+        amount:
+          $ref: '#/components/schemas/Money'
+        startAt:
+          type: string
+          format: date-time
+          description: The date and time when the subscription starts.
+        firstPaymentAt:
+          type: string
+          format: date-time
+          description: The date and time when the first payment must be collected.  The payment capture can occur later than the value that is specified in the `startAt` field  when there is a free-trial
+            period at the beginning of the subscription.
+        endAt:
+          type: string
+          format: date-time
+          description: The date and time when the subscription will end. This is optional if the subscription is open ended.
+        repetition:
+          type: string
+          enum:
+          - TestCycle
+          - Weekly
+          - Monthly
+          - Quarterly
+          - HalfYearly
+          - Yearly
+          description: The repetition cycle for the subscription collections.  'TestCycle' value can only be used in non-prod environments for testing purposes. It allows 5-minute cycle with 2 min leeway.
+      required:
+      - type
+      - amount
+      - startAt
+      - firstPaymentAt
+      - repetition
+    P2PPaymentRejectedHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Rejected
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the payment was rejected.
+    EComActivity:
+      type: object
+      required:
+      - id
+      - type
+      - category
+      - consumerId
+      - paymentSourceId
+      - consentId
+      - createdAt
+      - updatedAt
+      - shop
+      - merchantCategoryCode
+      - _links
+      properties:
+        id:
+          format: uuid
+          type: string
+          description: The ID of this activity. This ID is generated when the first event of the activity takes place. This ID remains stable throughout the lifetime of the activity. Use this ID to retrieve
+            the activity details using the [retrieve activity](ref:get-activity) endpoint call. It is not derived from any of the other IDs involved in the associated transaction.
+        category:
+          type: string
+          description: A category groups multiple types. Consumer PSPs can use this to filter and cluster activities.
+        type:
+          type: string
+          description: The type of this activity.
+        consumerId:
+          format: uuid
+          type: string
+          description: The ID of the consumer who created the activity.
+        paymentSourceId:
+          type: string
+          format: uuid
+          description: The ID of the payment source that was used to settle the payments.
+        consentId:
+          type: string
+          format: uuid
+          description: The UUID of a consent that was previously granted by the consumer.
+        createdAt:
+          format: date-time
+          type: string
+          description: The date and time when this activity was created.
+        updatedAt:
+          format: date-time
+          type: string
+          description: The date and time when this activity was updated.
+        shop:
+          $ref: '#/components/schemas/Shop'
+        orderDetailsUrl:
+          type: string
+          format: uri
+          description: A URL to a page at the merchant's website where the user can view the order details.
+        merchantCategoryCode:
+          $ref: '#/components/schemas/MerchantCategoryCode'
+          description: 'The merchant category code of the merchant from which the purchase was made.  See ISO 18245:2023 for more information on available merchant category codes.
+
+            Consumer PSPs can use this information to show a logo or provide contextual information when displaying  the activity to the consumer.
+
+            '
+        _links:
+          type: object
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+              description: A link to this activity.
+    P2PRequestPayeeBlockedHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: PayeeBlocked
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the request payee was blocked.
+    page:
+      type: object
+      examples:
+      - size: 1
+        totalElements: 1
+        totalPages: 1
+        number: 0
+        requestedPageSize: 10
+        limitReached: false
+      properties:
+        size:
+          type: integer
+          description: The number of elements on the page.
+        totalElements:
+          type: integer
+          description: The total number of elements available with the query.
+        totalPages:
+          type: integer
+          description: The total number of pages available, using the requested page size.
+        number:
+          type: integer
+          description: The number of the current page. Page numbers start at `0` and continue to the total number of pages.
+        requestedPageSize:
+          type: integer
+          description: The requested page size. The value of "size" might differ for the last page if the last page is not full.
+        limitReached:
+          type: boolean
+          description: If `true`, an internal limit when retrieving results was exceeded. Not all elements are returned.
+      description: A paginated resource is a HAL resource. The resource contains the page object, which describes the provided subset of data. The data is provided as an embedded collection resource. The
+        name of the collection depends on the endpoint. HAL links are also provided, for navigation.
+      title: Structure of a paginated response
+      required:
+      - size
+      - totalElements
+      - totalPages
+      - number
+      - requestedPageSize
+      - limitReached
+    P2PPaymentCancelledHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Cancelled
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the payment was cancelled.
+    P2PPaymentPayerBlockedHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: PayerBlocked
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the payment payer was blocked.
+    PagedSummaryCollectionResource:
+      type: object
+      properties:
+        _embedded:
+          oneOf:
+          - $ref: '#/components/schemas/ActivityCollectionEmbed'
+          - $ref: '#/components/schemas/SummaryCollectionEmbed'
+          discriminator:
+            propertyName: type
+            mapping:
+              Activities: '#/components/schemas/ActivityCollectionEmbed'
+              ActivitySummaries: '#/components/schemas/SummaryCollectionEmbed'
+        _links:
+          $ref: '#/components/schemas/PagedCollectionResourceLinks'
+        page:
+          $ref: '#/components/schemas/page'
+    P2POpenRequestOriginatorCounterpartyInfo:
+      type: object
+      description: Information about the payer of the P2P open request.
+      required:
+      - isPro
+      - paymentActivity
+      properties:
+        displayName:
+          type: string
+          description: The name of the payer.
+        isPro:
+          type: boolean
+          description: Whether the payer is a pro-user.
+        paymentActivity:
+          $ref: '#/components/schemas/link'
+          description: A link to the relevant payment activity.
+    EventDependentHistoryFailed:
+      type: object
+      required:
+      - type
+      - occurredAt
+      - failureReason
+      - _links
+      properties:
+        type:
+          type: string
+          const: Failed
+        failureReason:
+          type: string
+          enum:
+          - InsufficientFunds
+          - LimitExceeded
+          - Others
+        occurredAt:
+          format: date-time
+          type: string
+        _links:
+          type: object
+          required:
+          - authorisationActivity
+          properties:
+            authorisationActivity:
+              $ref: '#/components/schemas/link'
+              description: 'A link to the activity that represents the initial authorisation of the event-dependent payment.   '
+    P2PRequestRecipientInfo:
+      type: object
+      description: Information about the recipient of a P2P request.
+      required:
+      - paymentSourceId
+      properties:
+        consumerId:
+          type: string
+          format: uuid
+          description: The ID of the P2P request recipient.
+        paymentSourceId:
+          type: string
+          format: uuid
+          description: The ID of the payment source that was used to pay the request.
+    Authorised:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Authorised
+        occurredAt:
+          format: date-time
+          type: string
+    EventDependentHistoryItem:
+      type: object
+      oneOf:
+      - $ref: '#/components/schemas/AmountAuthorised'
+      - $ref: '#/components/schemas/Cancelled'
+      - $ref: '#/components/schemas/Captured'
+      - $ref: '#/components/schemas/EventDependentHistoryFailed'
+      - $ref: '#/components/schemas/Refunded'
+      discriminator:
+        propertyName: type
+        mapping:
+          AmountAuthorised: '#/components/schemas/AmountAuthorised'
+          Cancelled: '#/components/schemas/Cancelled'
+          Captured: '#/components/schemas/Captured'
+          Failed: '#/components/schemas/EventDependentHistoryFailed'
+          Refunded: '#/components/schemas/Refunded'
+    P2PPaymentPayeeSummary:
+      type: object
+      description: A payment through a p2p payment has been received.
+      allOf:
+      - $ref: '#/components/schemas/P2PActivitySummary'
+      - type: object
+        required:
+        - type
+        - amount
+        - payee
+        - payer
+        - failed
+        properties:
+          type:
+            type: string
+            const: P2PPaymentPayeeSummary
+          category:
+            type: string
+            const: P2P
+          payee:
+            $ref: '#/components/schemas/P2PPaymentRecipientInfo'
+          payer:
+            description: The payer's information.
+            $ref: '#/components/schemas/P2PCounterpartyInfo'
+          failed:
+            type: boolean
+            description: Indicates whether the payment has failed.
+          _links:
+            type: object
+            required:
+            - self
+            - blockContact
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to this activity.
+              blockContact:
+                $ref: '#/components/schemas/link'
+                description: Block the contact who sent the P2P payment.
+    P2PRequestOriginatorInfo:
+      type: object
+      description: Information about the originator of a P2P request.
+      required:
+      - paymentSourceId
+      properties:
+        consumerId:
+          type: string
+          format: uuid
+          description: The ID of the P2P request originator.
+        paymentSourceId:
+          type: string
+          format: uuid
+          description: The ID of the payment source that will receive the payment of the P2P request.
+    P2PActivitySummary:
+      type: object
+      required:
+      - id
+      - category
+      - createdAt
+      - updatedAt
+      - _links
+      properties:
+        id:
+          format: uuid
+          type: string
+          description: The ID of this activity.
+        resourceId:
+          format: uuid
+          type: string
+          description: The ID of the resource related to this activity.
+        category:
+          type: string
+          description: A category groups multiple types. Consumer PSPs can use this to filter and cluster activities.
+          const: P2P
+        amount:
+          $ref: '#/components/schemas/Money'
+        createdAt:
+          format: date-time
+          type: string
+          description: The date and time when this activity was created.
+        updatedAt:
+          format: date-time
+          type: string
+          description: The date and time when this activity was updated.
+        _links:
+          type: object
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+              description: A link to the details of the activity.
+    CaptureTrigger:
+      type: string
+      description: The trigger for capturing the payment.
+      enum:
+      - Shipping
+      - Delivery
+      - Availability
+      - ServiceFulfilment
+      - Other
+    P2POpenRequestExpiredHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Expired
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the open request expired.
+    AmountAuthorised:
+      type: object
+      required:
+      - type
+      - amount
+      - occurredAt
+      - _links
+      properties:
+        type:
+          type: string
+          const: AmountAuthorised
+        occurredAt:
+          format: date-time
+          type: string
+        amount:
+          $ref: '#/components/schemas/Money'
+        _links:
+          type: object
+          required:
+          - authorisationActivity
+          properties:
+            authorisationActivity:
+              $ref: '#/components/schemas/link'
+              description: 'A link to the activity that represents the initial authorisation of the event dependent payment. '
+    P2POpenRequestPayee:
+      type: object
+      description: An activity representing the payee of an open P2P request.
+      allOf:
+      - $ref: '#/components/schemas/P2PActivity'
+      - type: object
+        required:
+        - type
+        - payee
+        - viewCount
+        - expiresAt
+        - payers
+        - history
+        - _links
+        properties:
+          type:
+            type: string
+            const: P2POpenRequestPayee
+          category:
+            type: string
+            const: P2P
+          payee:
+            $ref: '#/components/schemas/P2POpenRequestOriginatorInfo'
+          viewCount:
+            type: integer
+            description: The number of times the P2P open request has been viewed.
+          expiresAt:
+            format: date-time
+            type: string
+            description: The date and time at which the P2P open request expires. After expiration, the P2P request cannot be used to make payments.
+            example: '2025-01-01T10:20:30.061200Z'
+          shareUrl:
+            type: string
+            format: uri
+            description: 'The share URL that can be used to share the open request with payers.
+
+
+              For more information about how to create a QR code from a Share URL, see [Generate a QR-code image](https://docs.epicompany.eu/platform/reference/post-api-share-url-qr).
+
+
+              When the open request cannot be approved anymore, the share URL will be removed.'
+          payers:
+            type: array
+            items:
+              $ref: '#/components/schemas/P2POpenRequestOriginatorCounterpartyInfo'
+          history:
+            type: array
+            description: 'The history of the payment-related changes in this activity. '
+            items:
+              type: object
+              description: A summary representation of an activity.
+              oneOf:
+              - $ref: '#/components/schemas/P2POpenRequestCreatedHistoryItem'
+              - $ref: '#/components/schemas/P2POpenRequestCancelledHistoryItem'
+              - $ref: '#/components/schemas/P2POpenRequestDeclinedHistoryItem'
+              - $ref: '#/components/schemas/P2POpenRequestExpiredHistoryItem'
+              - $ref: '#/components/schemas/P2POpenRequestPaymentReceivedHistoryItem'
+              - $ref: '#/components/schemas/P2POpenRequestPaidHistoryItem'
+              discriminator:
+                propertyName: type
+                mapping:
+                  Created: '#/components/schemas/P2POpenRequestCreatedHistoryItem'
+                  Cancelled: '#/components/schemas/P2POpenRequestCancelledHistoryItem'
+                  Declined: '#/components/schemas/P2POpenRequestDeclinedHistoryItem'
+                  Expired: '#/components/schemas/P2POpenRequestExpiredHistoryItem'
+                  PaymentReceived: '#/components/schemas/P2POpenRequestPaymentReceivedHistoryItem'
+                  Paid: '#/components/schemas/P2POpenRequestPaidHistoryItem'
+          _links:
+            type: object
+            required:
+            - self
+            - paymentsList
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to this activity.
+              cancellation:
+                $ref: '#/components/schemas/link'
+                description: Cancel the P2P open request.
+              paymentsList:
+                type: array
+                items:
+                  $ref: '#/components/schemas/link'
+                description: A list of links to activities of payments made based off of this request.
+    P2POpenRequestOriginatorInfo:
+      type: object
+      description: Information about the originator of a P2P open request.
+      required:
+      - consumerId
+      - paymentSourceId
+      properties:
+        consumerId:
+          type: string
+          format: uuid
+          description: The ID of the P2P open request originator.
+        paymentSourceId:
+          type: string
+          format: uuid
+          description: The ID of the payment source that will receive the payment of the P2P open request.
+    PagedCollectionResourceLinks:
+      type: object
+      properties:
+        self:
+          $ref: '#/components/schemas/link'
+        first:
+          $ref: '#/components/schemas/link'
+        last:
+          $ref: '#/components/schemas/link'
+        prev:
+          $ref: '#/components/schemas/link'
+        next:
+          $ref: '#/components/schemas/link'
+      required:
+      - self
+      - first
+      - last
+    P2PRequestCreatedHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Created
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the request was created.
+    P2PRequestPayerSummary:
+      type: object
+      description: A p2p request has been received.
+      allOf:
+      - $ref: '#/components/schemas/P2PActivitySummary'
+      - type: object
+        required:
+        - type
+        - amount
+        - payer
+        - payee
+        - cancelled
+        - declined
+        - expired
+        - expiresAt
+        properties:
+          type:
+            type: string
+            const: P2PRequestPayerSummary
+          category:
+            type: string
+            const: P2P
+          payer:
+            $ref: '#/components/schemas/P2PRequestRecipientInfo'
+          payee:
+            description: The payee's information.
+            $ref: '#/components/schemas/P2PCounterpartyInfo'
+          cancelled:
+            type: boolean
+            description: Indicates whether the request has been cancelled by the payee.
+          declined:
+            type: boolean
+            description: Indicates whether the request has been declined.
+          expired:
+            type: boolean
+            description: Indicates whether the request has expired.
+          expiresAt:
+            type: string
+            format: date-time
+            description: The date and time when this P2P request expires.
+            example: '2025-01-01T10:20:30.061200Z'
+          _links:
+            type: object
+            required:
+            - self
+            - approval
+            - rejection
+            - blockContact
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to this activity.
+              approval:
+                $ref: '#/components/schemas/link'
+                description: Approve a payment for the P2P request.
+              rejection:
+                $ref: '#/components/schemas/link'
+                description: Reject the P2P request.
+              blockContact:
+                $ref: '#/components/schemas/link'
+                description: Block the contact who sent the P2P request.
+              retryPayment:
+                $ref: '#/components/schemas/link'
+                description: Retry the attempt to pay this P2P request.
+    P2PPaymentPayee:
+      allOf:
+      - $ref: '#/components/schemas/P2PActivity'
+      - type: object
+        required:
+        - type
+        - amount
+        - payee
+        - payer
+        - history
+        properties:
+          type:
+            type: string
+            const: P2PPaymentPayee
+          category:
+            type: string
+            const: P2P
+          payee:
+            $ref: '#/components/schemas/P2PPaymentRecipientInfo'
+          payer:
+            description: The payer's information.
+            $ref: '#/components/schemas/P2PCounterpartyInfo'
+          history:
+            type: array
+            description: 'The history of the payment-related changes in this activity. '
+            items:
+              type: object
+              description: A summary representation of an activity.
+              oneOf:
+              - $ref: '#/components/schemas/P2PPaymentSettledHistoryItem'
+              - $ref: '#/components/schemas/P2PPaymentPayerBlockedHistoryItem'
+              - $ref: '#/components/schemas/P2PPaymentPayerUnblockedHistoryItem'
+              discriminator:
+                propertyName: type
+                mapping:
+                  Settled: '#/components/schemas/P2PPaymentSettledHistoryItem'
+                  PayerBlocked: '#/components/schemas/P2PPaymentPayerBlockedHistoryItem'
+                  PayerUnblocked: '#/components/schemas/P2PPaymentPayerUnblockedHistoryItem'
+          _links:
+            type: object
+            required:
+            - self
+            - blockContact
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to this activity.
+              blockContact:
+                $ref: '#/components/schemas/link'
+                description: Block the contact who sent the P2P payment.
+    P2PRequestDeclinedHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Declined
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the request was declined.
+    ConstraintViolationProblem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type only in the context of the provided endpoint.
+          const: /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          default: Constraint Violation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          default: 400
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+        violations:
+          type: array
+          description: A list of constraint violations.
+          items:
+            type: object
+            required:
+            - field
+            - message
+            properties:
+              field:
+                type: string
+                description: The name of the field that caused the constraint violation.
+              message:
+                type: string
+                description: A technical message that describes the constraint violation, in English.
+              userMessageKey:
+                type: string
+                description: A key that describes the type of constraint violation, useful to report user input validation error. The key can be used to look up a localised message for instance, that can
+                  then be interpolated using the `userMessageValue`.
+                example: constraint.string.min-length
+                oneOf:
+                - type: string
+                  title: Standard constraint violation key
+                  description: 'All known standard constraint violation keys: * **constraint.required**: The field is required. * **constraint.type**: The field must be of the correct type. * **constraint.enum**:
+                    The field must be one of the allowed values. `userMessageValue` contains the list as a string value. * **constraint.const**: The field must be a specific value. `userMessageValue` contains
+                    the value as a string value. * **constraint.number.multiple-of**: The field must be a multiple of a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-inclusive**:
+                    The field must be less than or equal to a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-exclusive**: The field must be less
+                    than a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.minimum-inclusive**: The field must be greater than or equal to a specific number.
+                    `userMessageValue` contains the number as a string value.            * **constraint.number.minimum-exclusive**: The field must be greater than a specific number. `userMessageValue` contains
+                    the number as a string value. * **constraint.string.max-length**: The field must be at most a specific number of characters long. `userMessageValue` contains the number as a string value.
+                    * **constraint.string.min-length**: The field must be at least a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.min-length-not-blank**:
+                    The field must be at least a specific number of characters long and not blank. `userMessageValue` contains the number as a string value. * **constraint.string.max-graphemes**: The field
+                    must be at most a specific number of graphemes long. `userMessageValue` contains the number as a string value. * **constraint.string.pattern**: The field must match a specific pattern.
+                    * **constraint.string.length**: The field must be a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.url**: The field
+                    must be a valid URL. * **constraint.string.url-https**: The field must be a valid HTTPS URL. * **constraint.string.uuid4**: The field must be a valid UUID v4. * **constraint.string.email**:
+                    The field must be a valid email address. * **constraint.string.phone-number**: The field must be a valid phone number. * **constraint.duration.min-seconds**: The field must be at least
+                    a specific number of seconds long. `userMessageValue` contains the number as a string value. * **constraint.duration.max-days**: The field must be at most a specific number of days long.
+                    `userMessageValue` contains the number as a string value. * **constraint.datetime.before**: The field must be before a specific date and time. `userMessageValue` contains the `datetime`
+                    as a timestamp string value. * **constraint.array.min-items**: The field must contain at least a specific number of items. `userMessageValue` contains the number as a string value. *
+                    **constraint.array.max-items**: The field must contain at most a specific number of items. `userMessageValue` contains the number as a string value. * **constraint.array.unique-items**:
+                    The field must contain only unique items. * **constraint.amount.maximum**: The field must be less than or equal to a specific amount. * **constraint.amount.minimum**: The field must
+                    be greater than or equal to a specific amount. * **constraint.currency-supported**: The field must be a supported currency.'
+                  enum:
+                  - constraint.required
+                  - constraint.type
+                  - constraint.enum
+                  - constraint.const
+                  - constraint.number.multiple-of
+                  - constraint.number.maximum-inclusive
+                  - constraint.number.maximum-exclusive
+                  - constraint.number.minimum-inclusive
+                  - constraint.number.minimum-exclusive
+                  - constraint.string.max-length
+                  - constraint.string.min-length
+                  - constraint.string.min-length-not-blank
+                  - constraint.string.max-graphemes
+                  - constraint.string.pattern
+                  - constraint.string.length
+                  - constraint.string.url
+                  - constraint.string.url-https
+                  - constraint.string.uuid4
+                  - constraint.string.email
+                  - constraint.string.phone-number
+                  - constraint.duration.min-seconds
+                  - constraint.duration.max-days
+                  - constraint.datetime.before
+                  - constraint.array.min-items
+                  - constraint.array.max-items
+                  - constraint.array.unique-items
+                  - constraint.amount.maximum
+                  - constraint.amount.minimum
+                  - constraint.currency-supported
+                - type: string
+                  description: Placeholder for a future user message key.
+                  title: Placeholder for future message keys
+                  not:
+                    enum:
+                    - constraint.required
+                    - constraint.type
+                    - constraint.enum
+                    - constraint.const
+                    - constraint.number.multiple-of
+                    - constraint.number.maximum-inclusive
+                    - constraint.number.maximum-exclusive
+                    - constraint.number.minimum-inclusive
+                    - constraint.number.minimum-exclusive
+                    - constraint.string.max-length
+                    - constraint.string.min-length
+                    - constraint.string.min-length-not-blank
+                    - constraint.string.max-graphemes
+                    - constraint.string.pattern
+                    - constraint.string.length
+                    - constraint.string.url
+                    - constraint.string.url-https
+                    - constraint.string.uuid4
+                    - constraint.string.email
+                    - constraint.string.phone-number
+                    - constraint.duration.min-seconds
+                    - constraint.duration.max-days
+                    - constraint.datetime.before
+                    - constraint.array.min-items
+                    - constraint.array.max-items
+                    - constraint.array.unique-items
+                    - constraint.amount.maximum
+                    - constraint.amount.minimum
+                    - constraint.currency-supported
+              userMessageValue:
+                type: string
+                description: A string value that can be used to replace a placeholder in the localised message.
+      required:
+      - type
+      - title
+      - status
+      - violations
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type, only in the context of the provided endpoint.
+          default: about:blank
+          example: /some/uri-reference
+          not:
+            enum:
+            - /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          example: some title for the error situation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem, which helps locate the problem and describes how to proceed.
+          example: some description for the error situation
+        instance:
+          type: string
+          format: uri-reference
+          description: A URI reference that identifies the specific occurrence of the problem, for example, by adding a fragment identifier or sub-path to the problem type. Can be used to locate the root
+            of the problem in the source code.
+          example: /some/uri-reference#specific-occurrence-context
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+      required:
+      - type
+      - title
+      - status
+    P2PPaymentPayerHistoryItems:
+      type: object
+      description: A summary representation of an activity.
+      oneOf:
+      - $ref: '#/components/schemas/P2PPaymentCreatedHistoryItem'
+      - $ref: '#/components/schemas/P2PPaymentSentHistoryItem'
+      - $ref: '#/components/schemas/P2PPaymentRejectedHistoryItem'
+      - $ref: '#/components/schemas/P2PPaymentFailedHistoryItem'
+      - $ref: '#/components/schemas/P2PPaymentSettledHistoryItem'
+      - $ref: '#/components/schemas/P2PPaymentExpiredHistoryItem'
+      - $ref: '#/components/schemas/P2PPaymentCancelledHistoryItem'
+      discriminator:
+        propertyName: type
+        mapping:
+          Created: '#/components/schemas/P2PPaymentCreatedHistoryItem'
+          Sent: '#/components/schemas/P2PPaymentSentHistoryItem'
+          Rejected: '#/components/schemas/P2PPaymentRejectedHistoryItem'
+          Failed: '#/components/schemas/P2PPaymentFailedHistoryItem'
+          Settled: '#/components/schemas/P2PPaymentSettledHistoryItem'
+          Expired: '#/components/schemas/P2PPaymentExpiredHistoryItem'
+          Cancelled: '#/components/schemas/P2PPaymentCancelledHistoryItem'
+    P2PPaymentOriginatorInfo:
+      type: object
+      description: Information about the originator of a P2P payment.
+      required:
+      - consumerId
+      - paymentSourceId
+      properties:
+        consumerId:
+          type: string
+          format: uuid
+          description: The ID of the P2P payment originator.
+        paymentSourceId:
+          type: string
+          format: uuid
+          description: The ID of the payment source that was used to settle the payment.
+    P2POpenRequestPayerSummary:
+      type: object
+      description: A p2p open request has been paid.
+      allOf:
+      - $ref: '#/components/schemas/P2PActivitySummary'
+      - type: object
+        required:
+        - type
+        - payers
+        - payee
+        - cancelled
+        - declined
+        - expired
+        - expiresAt
+        properties:
+          type:
+            type: string
+            const: P2POpenRequestPayerSummary
+          category:
+            type: string
+            const: P2P
+          payerIds:
+            type: array
+            items:
+              $ref: '#/components/schemas/P2POpenRequestRecipientInfo'
+          payee:
+            description: The payee's information.
+            $ref: '#/components/schemas/P2PCounterpartyInfo'
+          cancelled:
+            type: boolean
+            description: Indicates whether the open request has been cancelled.
+          declined:
+            type: boolean
+            description: Indicates whether the open request has been declined by the payer.
+          expired:
+            type: boolean
+            description: Indicates whether the open request has expired.
+          expiresAt:
+            format: date-time
+            type: string
+            description: The date and time at which the P2P open request expires. After expiration, the P2P request cannot be used to make payments.
+            example: '2025-01-01T10:20:30.061200Z'
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to this activity.
+              approval:
+                $ref: '#/components/schemas/link'
+                description: Approve a payment for the P2P open request.
+              rejection:
+                $ref: '#/components/schemas/link'
+                description: 'Reject the P2P open request.                 '
+    EventDependentReservationSummary:
+      type: object
+      description: An event-dependent payment request has been created.
+      allOf:
+      - $ref: '#/components/schemas/BaseSummary'
+      - type: object
+        required:
+        - type
+        - category
+        - amount
+        - shop
+        - merchantCategoryCode
+        - authorisationId
+        - cancelled
+        - failed
+        properties:
+          type:
+            type: string
+            const: EventDependentReservation
+          category:
+            type: string
+            const: ECommerce
+          amount:
+            $ref: '#/components/schemas/Money'
+          remainingReservedAmount:
+            $ref: '#/components/schemas/Money'
+            description: 'The remaining amount that can be captured from the reservation if the reservation has not yet been marked as final.
+
+              '
+          paymentSourceId:
+            type: string
+            format: uuid
+            description: The ID of the payment source.
+          shop:
+            $ref: '#/components/schemas/Shop'
+          merchantCategoryCode:
+            $ref: '#/components/schemas/MerchantCategoryCode'
+            description: 'The merchant category code of the merchant from which the purchase was made.  See ISO 18245:2023 for more information on available merchant category codes.
+
+
+              Consumer PSPs can use this information to show a logo or provide contextual information when displaying the activity to the consumer.'
+          authorisationId:
+            type: string
+            description: The [ID of the authorisation]ref:create-consumer-psp-authorisation) that is given to the consumer PSP when the payment request has been created. Consumer PSPs can use this field
+              to link an EPI activity to their SEPA transaction.
+          cancelled:
+            type: boolean
+            description: True, if either the acceptor cancelled the event-dependent payment or if the acceptor did not capture the entire amount before the consent expired.
+          failed:
+            type: boolean
+            description: True, if the authorisation has been rejected or has failed.
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                allOf:
+                - $ref: '#/components/schemas/link'
+                  description: 'A link to the details of the activity.
+
+                    '
+    ActivitySummary:
+      type: object
+      description: A summary representation of an activity.
+      oneOf:
+      - $ref: '#/components/schemas/SingleImmediatePaymentSummary'
+      - $ref: '#/components/schemas/EventDependentCaptureSummary'
+      - $ref: '#/components/schemas/EventDependentReservationSummary'
+      - $ref: '#/components/schemas/RefundSummary'
+      - $ref: '#/components/schemas/SubscriptionPaymentSummary'
+      - $ref: '#/components/schemas/P2PPaymentPayerSummary'
+      - $ref: '#/components/schemas/P2PPaymentPayeeSummary'
+      - $ref: '#/components/schemas/P2PPaymentPayerAndPayeeSummary'
+      - $ref: '#/components/schemas/P2PRequestPayerSummary'
+      - $ref: '#/components/schemas/P2PRequestPayeeSummary'
+      - $ref: '#/components/schemas/P2POpenRequestPayerSummary'
+      - $ref: '#/components/schemas/P2POpenRequestPayeeSummary'
+      discriminator:
+        propertyName: type
+        mapping:
+          SingleImmediatePayment: '#/components/schemas/SingleImmediatePaymentSummary'
+          EventDependentCapture: '#/components/schemas/EventDependentCaptureSummary'
+          EventDependentReservation: '#/components/schemas/EventDependentReservationSummary'
+          Refund: '#/components/schemas/RefundSummary'
+          SubscriptionPayment: '#/components/schemas/SubscriptionPaymentSummary'
+          P2PPaymentPayerSummary: '#/components/schemas/P2PPaymentPayerSummary'
+          P2PPaymentPayeeSummary: '#/components/schemas/P2PPaymentPayeeSummary'
+          P2PPaymentPayerAndPayeeSummary: '#/components/schemas/P2PPaymentPayerAndPayeeSummary'
+          P2PRequestPayerSummary: '#/components/schemas/P2PRequestPayerSummary'
+          P2PRequestPayeeSummary: '#/components/schemas/P2PRequestPayeeSummary'
+          P2POpenRequestPayerSummary: '#/components/schemas/P2POpenRequestPayerSummary'
+          P2POpenRequestPayeeSummary: '#/components/schemas/P2POpenRequestPayeeSummary'
+    EComOriginatorPspReference:
+      type: string
+      description: The consumer PSP's reference of the originator of the payment (SEPA scheme attribute T054). Consumer PSPs can use this field to link an EPI activity to their SEPA transaction. Note that
+        this value is available only after the consumer PSP has marked the capture as settled.
+    link:
+      type: object
+      properties:
+        href:
+          type: string
+          format: uri
+        name:
+          type: string
+      required:
+      - href
+    PaymentPlan:
+      type: object
+      description: The initial payment plan consented by the consumer.
+      oneOf:
+      - $ref: '#/components/schemas/SingleImmediatePaymentPlan'
+      - $ref: '#/components/schemas/C2cPaymentPlan'
+      - $ref: '#/components/schemas/EventDependentPaymentPlan'
+      - $ref: '#/components/schemas/SubscriptionPaymentPlan'
+      - $ref: '#/components/schemas/ConsumerPresentFuturePaymentPlan'
+      discriminator:
+        propertyName: type
+        mapping:
+          SingleImmediate: '#/components/schemas/SingleImmediatePaymentPlan'
+          C2c: '#/components/schemas/C2cPaymentPlan'
+          EventDependent: '#/components/schemas/EventDependentPaymentPlan'
+          Subscription: '#/components/schemas/SubscriptionPaymentPlan'
+          ConsumerPresentFuturePayment: '#/components/schemas/ConsumerPresentFuturePaymentPlan'
+    SubscriptionPaymentSummary:
+      type: object
+      description: A subscription payment has been made.
+      allOf:
+      - $ref: '#/components/schemas/BaseSummary'
+      - type: object
+        required:
+        - type
+        - category
+        - amount
+        - merchantCategoryCode
+        - settlementPending
+        - failed
+        - authorisationId
+        - shop
+        properties:
+          type:
+            type: string
+            const: SubscriptionPayment
+          category:
+            type: string
+            const: ECommerce
+          amount:
+            $ref: '#/components/schemas/Money'
+          merchantCategoryCode:
+            $ref: '#/components/schemas/MerchantCategoryCode'
+            description: 'The merchant category code of the merchant from which the purchase was made.  See ISO 18245:2023 for more information on available merchant category codes.
+
+              Consumer PSPs can use this information to display a logo or provide contextual information when displaying  the activity to the consumer.'
+          settlementPending:
+            type: boolean
+            description: A transaction is considered pending when it has been authorised but has yet to be settled. `settlementPending` would be `false` if the authorisation has failed, been rejected, or
+              if the transaction has already been settled.
+          failed:
+            type: boolean
+            description: Indicates whether the subscription payment failed.
+          refundedAmount:
+            $ref: '#/components/schemas/Money'
+            description: The amount that was refunded for this payment.  This amount can cover a part of the original amount, the full amount, or even more than the original amount.
+          authorisationId:
+            type: string
+            description: The [ID of the authorisation](ref:create-consumer-psp-authorisation) that was given to the consumer PSP when the payment request has been created. Consumer PSPs can use this field
+              to link an EPI activity to their SEPA transaction.
+          captureId:
+            type: string
+            description: The ID of the capture, as is returned by EPI central services. Consumer PSPs can use this field to link an EPI activity to their SEPA transaction.
+          originatorPspReference:
+            $ref: '#/components/schemas/EComOriginatorPspReference'
+          shop:
+            $ref: '#/components/schemas/Shop'
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                $ref: '#/components/schemas/link'
+                description: A link to the details of the activity.
+    P2PRequestExpiredHistoryItem:
+      type: object
+      required:
+      - type
+      - occurredAt
+      properties:
+        type:
+          type: string
+          const: Expired
+        occurredAt:
+          type: string
+          format: date-time
+          description: The date and time when the request expired.
+    RefundActivity:
+      allOf:
+      - $ref: '#/components/schemas/EComActivity'
+      - type: object
+        required:
+        - type
+        - category
+        - history
+        - refund
+        - refundId
+        - refundType
+        - captureId
+        - refundedAmount
+        - originAmount
+        - originPaymentPlan
+        properties:
+          history:
+            type: array
+            description: "The history of the payment-related changes in this activity. \n"
+            items:
+              $ref: '#/components/schemas/RefundHistoryItem'
+          type:
+            type: string
+            const: Refund
+          category:
+            type: string
+            const: ECommerce
+          refundedAmount:
+            $ref: '#/components/schemas/Money'
+          originAmount:
+            $ref: '#/components/schemas/Money'
+          originPaymentPlan:
+            $ref: '#/components/schemas/PaymentPlan'
+          paymentCreatedAt:
+            description: 'The date and time when the original payment was created.
+
+              '
+            format: date-time
+            type: string
+          refund:
+            type: object
+            properties:
+              messages:
+                type: array
+                description: 'Acceptor PSPs can add messages to the consumer during the refund process.
+
+                  '
+                items:
+                  type: string
+          refundId:
+            type: string
+            format: uuid
+            description: 'The ID of the refund in EPI central services. Consumer PSPs can use this field to link an EPI activity to their SEPA transaction. The refund ID can be found either in the remittance
+              info (T009, the first UUID) or in the originator''s reference (T014) but without any ''-''.
+
+              '
+          refundType:
+            type: string
+            enum:
+            - FullRefund
+            - PartialRefund
+            - OverRefund
+            description: 'The type of the refund that was requested by the merchant.
+
+              '
+          captureId:
+            type: string
+            format: uuid
+            description: The UUID of the capture this refund refers to.
+          _links:
+            type: object
+            required:
+            - self
+            properties:
+              self:
+                allOf:
+                - $ref: '#/components/schemas/link'
+                  description: 'A link to this activity.
+
+                    '
+              refundedActivity:
+                $ref: '#/components/schemas/link'
+                description: 'A deep link to the payment activity for which the refund was created.
+
+                  '
+    SingleImmediatePaymentPlan:
+      title: Single, immediate payment
+      description: A single, immediate payment, containing the payment type and amount.
+      type: object
+      properties:
+        type:
+          type: string
+          const: SingleImmediate
+        amount:
+          $ref: '#/components/schemas/Money'
+      required:
+      - type
+      - amount

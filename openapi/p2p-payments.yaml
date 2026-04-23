@@ -1,0 +1,1632 @@
+openapi: 3.0.0
+info:
+  title: P2P Payments API
+  version: 1.0.0
+  description: API specification for p2p-payments resource
+servers:
+- url: https://api.example.com
+paths:
+  /api/p2p-payments:
+    servers: []
+    get:
+      summary: List P2P Payment resources [Wallet]
+      x-slo:
+        availability: 99.95
+        latency:
+          p95: 250
+          p99: 400
+          max: 1200
+        throughput: N/A
+        severity: N/A
+        status: DRAFT
+      tags:
+      - p2p-payments
+      parameters:
+      - name: page
+        in: query
+        description: The requested page number.
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: size
+        in: query
+        description: The requested page size. The data is split into pages of this size, and the numbering depends on this page size.
+        required: false
+        schema:
+          type: integer
+          minimum: 10
+          maximum: 100
+          default: 10
+      - name: sort
+        in: query
+        description: The sorting order. Sort either by creation date `created:(asc|desc)`, updated date `updatedAt:(asc|desc)` or by status `status:(asc|desc)` .
+        required: false
+        schema:
+          type: string
+          default: created:desc
+      - name: status
+        in: query
+        description: 'Filter by the status of the P2P payment. Possible status values are: `Initial`, `Canceled`, `Approved`, `Accepted`, `Rejected`, `Settled`, `Failed`, and `Expired`. For more information,
+          see [P2P status model](doc:sending-money#p2p-payment-status-model) documentation.'
+        required: false
+        schema:
+          type: string
+        examples:
+          singleValue:
+            value: Approved
+            summary: A single valid value
+          allValues:
+            $ref: '#/components/examples/allPaymentStatuses'
+      - name: payerPaymentMeansId
+        in: query
+        description: Filter by the payment means ID of the payer.
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: payeePaymentSourceId
+        in: query
+        description: Filter by the payment source ID of the payee.
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: direction
+        in: query
+        description: Filter by whether the P2P payment was sent or received.
+        required: false
+        schema:
+          type: string
+          enum:
+          - Received
+          - Sent
+      - name: payeeProxyHash
+        in: query
+        description: Filter by the proxy hash of the payee.
+        required: false
+        schema:
+          $ref: '#/components/schemas/proxyHash'
+      - name: updatedSince
+        in: query
+        description: Filter by the `updatedAt` value. This excludes any payments that occur before the specified timestamp.
+        required: false
+        schema:
+          type: string
+          format: date-time
+          example: '2023-05-03T10:39:16.425084691Z'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                type: object
+                examples:
+                - _links:
+                    self:
+                      href: https://api.epi-services.eu/api/p2p-payments?page=1&size=10&sort=%3Adesc
+                    prev:
+                      href: https://api.epi-services.eu/api/p2p-payments?page=0&size=10&sort=%3Adesc
+                    first:
+                      href: https://api.epi-services.eu/api/p2p-payments?page=0&size=10&sort=%3Adesc
+                    last:
+                      href: https://api.epi-services.eu/api/p2p-payments?page=0&size=10&sort=%3Adesc
+                  _embedded:
+                    p2pPayments:
+                    - id: d26fc995-e6d2-4be5-9399-ed3c870dd8c6
+                      amount:
+                        euroCents: 4900
+                      title: "\U0001F9F3\U0001F304\U0001F4B6"
+                      message: "For our weekend trip \U0001F64F."
+                      payerPaymentMeansId: 45f2b62f-f7ee-4db4-be77-380e10f90f1e
+                      payerPaymentSourceId: 1b3e8663-eef2-4453-8230-7ccc74da2bed
+                      payeeProxyHash: PZGI4MTD8kVdbysQMF8ztCykGY87PLIhrg-1qfxPPrg=
+                      created: '2023-05-03T10:39:16.214083391Z'
+                      updatedAt: '2023-05-03T10:39:16.214083391Z'
+                      status: Approved
+                      _embedded:
+                        paymentRules:
+                          paymentRules:
+                          - type: Fixed
+                            constraint:
+                              type: Single
+                              maxAmount:
+                                euroCents: 4900
+                            startOffset: PT-5S
+                            windowDuration: PT5M
+                        payerContact:
+                          displayName: Payer Display Name
+                          pro: false
+                        payeeContact:
+                          displayName: Payee Display Name
+                          proxyValue: '+431809876543210'
+                          pro: false
+                      _links:
+                        self:
+                          href: https://api.epi-services.eu/api/p2p-payments/d26fc995-e6d2-4be5-9399-ed3c870dd8c6
+                        approval:
+                          href: https://api.epi-services.eu/api/p2p-payments/d26fc995-e6d2-4be5-9399-ed3c870dd8c6/approval
+                        cancellation:
+                          href: https://api.epi-services.eu/api/p2p-payments/d26fc995-e6d2-4be5-9399-ed3c870dd8c6/cancellation
+                      viewerType: Payer
+                  page:
+                    size: 1
+                    totalElements: 1
+                    totalPages: 1
+                    number: 1
+                    requestedPageSize: 10
+                    limitReached: false
+                properties:
+                  _embedded:
+                    type: object
+                    properties:
+                      p2pPayments:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/P2PPaymentSchema'
+                  _links:
+                    $ref: '#/components/schemas/PagedCollectionResourceLinks'
+                  page:
+                    $ref: '#/components/schemas/page'
+                required:
+                - _embedded
+                - _links
+                - page
+              examples:
+                get-p2p-payments:
+                  value:
+                    _links:
+                      self:
+                        href: https://api.epi-services.eu/api/p2p-payments?page=0&size=10&sort=%3Adesc
+                      prev:
+                        href: https://api.epi-services.eu/api/p2p-payments?page=0&size=10&sort=%3Adesc
+                      first:
+                        href: https://api.epi-services.eu/api/p2p-payments?page=0&size=10&sort=%3Adesc
+                      last:
+                        href: https://api.epi-services.eu/api/p2p-payments?page=0&size=10&sort=%3Adesc
+                    _embedded:
+                      p2pPayments:
+                      - id: d26fc995-e6d2-4be5-9399-ed3c870dd8c6
+                        amount:
+                          euroCents: 4900
+                        title: "\U0001F9F3\U0001F304\U0001F4B6"
+                        message: "For our weekend trip \U0001F64F."
+                        payerPaymentMeansId: 45f2b62f-f7ee-4db4-be77-380e10f90f1e
+                        payerPaymentSourceId: 1b3e8663-eef2-4453-8230-7ccc74da2bed
+                        payeeProxyHash: PZGI4MTD8kVdbysQMF8ztCykGY87PLIhrg-1qfxPPrg=
+                        created: '2023-05-03T10:39:16.214083391Z'
+                        updatedAt: '2023-05-03T10:39:16.214083391Z'
+                        status: Approved
+                        _embedded:
+                          paymentRules:
+                            paymentRules:
+                            - type: Fixed
+                              constraint:
+                                type: Single
+                                maxAmount:
+                                  euroCents: 4900
+                              startOffset: PT-5S
+                              windowDuration: PT5M
+                          payerContact:
+                            displayName: Payer Display Name
+                            pro: false
+                          payeeContact:
+                            displayName: Payee Display Name
+                            proxyValue: '+431809876543210'
+                            pro: false
+                        _links:
+                          self:
+                            href: https://api.epi-services.eu/api/p2p-payments/d26fc995-e6d2-4be5-9399-ed3c870dd8c6
+                          approval:
+                            href: https://api.epi-services.eu/api/p2p-payments/d26fc995-e6d2-4be5-9399-ed3c870dd8c6/approval
+                          cancellation:
+                            href: https://api.epi-services.eu/api/p2p-payments/d26fc995-e6d2-4be5-9399-ed3c870dd8c6/cancellation
+                        viewerType: Payer
+                    page:
+                      size: 1
+                      totalElements: 1
+                      totalPages: 1
+                      number: 1
+                      requestedPageSize: 10
+                      limitReached: false
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+        '422':
+          $ref: '#/components/responses/UnprocessableContentForPaymentListRetrieval'
+      operationId: get-p2p-payments
+      description: "A consumer\u2019s wallet can retrieve all P2P Payment resources that correspond\nto P2P payments that the consumer either made or received.\n\n   If a consumer has received P2P payments,\
+        \ they can view only payments that have a `Settled` status.\n\nThe list is paginated. Retrieving the full list might require multiple API calls\nwhen `page.totalPages` is greater than 1.\n\n\nFor\
+        \ more information, see [Pagination](ref:pagination)\n\nThe `p2p:transferMoney` scope is required to access this route."
+      security:
+      - BearerAccessToken: []
+    post:
+      summary: Create a P2P payment [Consumer PSP or Wallet]
+      x-slo:
+        availability: 99.95
+        latency:
+          p95: 950
+          p99: 1650
+          max: 4950
+        throughput: N/A
+        severity: N/A
+        status: DRAFT
+      operationId: post-p2p-payments
+      parameters:
+      - $ref: '#/components/parameters/Idempotency-Key'
+      responses:
+        '201':
+          description: "201 - Created\n\nNote: The payee's proxy hash is retrievable only by the payer\u2019s wallet, not the payee\u2019s."
+          headers:
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/RateLimitReset'
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/P2PPaymentPayerSchema'
+                - $ref: '#/components/schemas/P2PPaymentBaseSchema'
+                discriminator:
+                  propertyName: viewerType
+                  mapping:
+                    Payer: '#/components/schemas/P2PPaymentPayerSchema'
+                    Unknown: '#/components/schemas/P2PPaymentBaseSchema'
+              examples:
+                Example 1:
+                  value:
+                    id: 83511ef8-efd8-45b0-ac3c-de7c21f930bd
+                    amount:
+                      euroCents: 4900
+                    title: "\U0001F9F3\U0001F304\U0001F4B6"
+                    message: "For our weekend trip \U0001F64F."
+                    payerPaymentMeansId: 45f2b62f-f7ee-4db4-be77-380e10f90f1e
+                    payerPaymentSourceId: 1b3e8663-eef2-4453-8230-7ccc74da2bed
+                    payeeProxyHash: PZGI4MTD8kVdbysQMF8ztCykGY87PLIhrg-1qfxPPrg=
+                    created: '2023-05-03T10:39:16.425084691Z'
+                    updatedAt: '2023-05-03T10:39:16.425084691Z'
+                    status: Initial
+                    _embedded:
+                      paymentRules:
+                        paymentRules:
+                        - type: Fixed
+                          constraint:
+                            type: Single
+                            maxAmount:
+                              euroCents: 4900
+                          startOffset: PT-5S
+                          windowDuration: PT5M
+                      payerContact:
+                        displayName: Payer Display Name
+                        pro: false
+                      payeeContact:
+                        displayName: Payee Display Name
+                        proxyValue: '+431809876543210'
+                        pro: false
+                    _links:
+                      self:
+                        href: https://api.epi-services.eu/api/p2p-payments/83511ef8-efd8-45b0-ac3c-de7c21f930bd
+                      approval:
+                        href: https://api.epi-services.eu/api/p2p-payments/83511ef8-efd8-45b0-ac3c-de7c21f930bd/approval
+                      cancellation:
+                        href: https://api.epi-services.eu/api/p2p-payments/83511ef8-efd8-45b0-ac3c-de7c21f930bd/cancellation
+                    viewerType: Payer
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+        '403':
+          $ref: '#/components/responses/errorResponse403'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                ShareIdNotFound:
+                  value:
+                    type: /problem/payment-source-profile/share-id/not-found
+                    status: 404
+                    title: Not Found
+                    callId: 00000000000000000000000000000000-0000000000000000
+        '422':
+          $ref: '#/components/responses/UnprocessableContentForPaymentCreation'
+        '429':
+          $ref: '#/components/responses/errorResponse429'
+        '502':
+          description: Bad Gateway - An upstream service could not be reached or did not respond in time.
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/Problem'
+                discriminator:
+                  propertyName: type
+                  mapping:
+                    about:blank: '#/components/schemas/Problem'
+                    /problem/payment-service-provider/unavailable: '#/components/schemas/Problem'
+                    /problem/paylib-api/unavailable: '#/components/schemas/Problem'
+              examples:
+                /problem/payment-service-provider/unavailable:
+                  value:
+                    type: /problem/payment-service-provider/unavailable
+                    status: 502
+                    title: Payment validation failed
+                    callId: 00000000000000000000000000000000-0000000000000000
+                /problem/paylib-api/unavailable:
+                  value:
+                    type: /problem/paylib-api/unavailable
+                    status: 502
+                    title: Paylib API failed
+                    callId: 00000000000000000000000000000000-0000000000000000
+      description: "## Person-to-person payments\n\nOne consumer (the payer) can send money to another consumer (the payee)\nthrough a person-to-person (P2P) payment.\n\n\nThe payer creates a P2P payment,\
+        \ including details like the amount, the\npayee and a message. In the standalone Wero digital wallet app, the payer\napproves the P2P payment with a signed consent token, which the payer PSP\ncan\
+        \ verify to initiate the money transfer.\n\n\n### Create a P2P payment\n\nWith the following API request, a consumer can initiate a P2P payment.\n\n\nCurrently, P2P payments are limited to 10,000,000\
+        \ euro cents (\u20AC100,000).\n\nIn addition, a payer currently has a limit of creating 100 P2P payments per week.\n\nThis request can benefit from clients setting the Idempotency-Key header. \n\
+        For more information, see [Idempotency](ref:idempotency).\n\nThe `p2p:transferMoney` scope is required to access this route."
+      security:
+      - BearerAccessToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              examples:
+              - amount:
+                  euroCents: 4900
+                title: "\U0001F9F3\U0001F304\U0001F4B6"
+                message: "For our weekend trip \U0001F64F."
+                payerPaymentMeansId: 45f2b62f-f7ee-4db4-be77-380e10f90f1e
+                payeeProxyHash: PZGI4MTD8kVdbysQMF8ztCykGY87PLIhrg-1qfxPPrg=
+              properties:
+                amount:
+                  allOf:
+                  - $ref: '#/components/schemas/Money'
+                  - type: object
+                    properties:
+                      euroCents:
+                        type: integer
+                        minimum: 1
+                        maximum: 10000000
+                title:
+                  type: string
+                  description: Large message title sent to the payee. Limited to 3 graphemes.
+                  example: "\U0001F382\U0001F37D\uFE0F\U0001F4B6"
+                message:
+                  type: string
+                  description: Message that is sent to the payee. Limited to 250 graphemes.
+                paymentReference:
+                  $ref: '#/components/schemas/PaymentReference'
+                payerPaymentMeansId:
+                  type: string
+                  description: The means of payment that is used to make the payment.
+                  format: uuid
+                payeeShareId:
+                  type: string
+                  description: The share id of the payment target.
+                  minLength: 1
+                  maxLength: 50
+                payeeProxyHash:
+                  $ref: '#/components/schemas/proxyHash'
+                consumerDeviceTelemetry:
+                  $ref: '#/components/schemas/InboundConsumerDeviceTelemetry'
+                flowType:
+                  $ref: '#/components/schemas/FlowType'
+              oneOf:
+              - required:
+                - payeeProxyHash
+                - amount
+                - payerPaymentMeansId
+                title: CreatePaymentViaProxyHash
+              - required:
+                - payeeShareId
+                - amount
+                - payerPaymentMeansId
+                title: CreatePaymentViaShareId
+            examples:
+              p2p-payment-with-consumer-device-telemetry:
+                value:
+                  amount:
+                    euroCents: 4900
+                  title: "\U0001F9F3\U0001F304\U0001F4B6"
+                  message: "For our weekend trip \U0001F64F."
+                  payerPaymentMeansId: 45f2b62f-f7ee-4db4-be77-380e10f90f1e
+                  payeeProxyHash: PZGI4MTD8kVdbysQMF8ztCykGY87PLIhrg-1qfxPPrg=
+                  consumerDeviceTelemetry:
+                    deviceUserAgent: Mozilla/5.0 (iPhone; CPU iPhone OS 13_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.5 Mobile/15E148 Safari/604.1
+                    deviceIpAddress: 192.0.2.123
+                    deviceId: 6fc1c567-a4cd-45c5-9e44-c5a5b9a6f09a
+                    deviceModel: iPhone11
+                    deviceScreenResolution: 828x1792
+                    deviceLanguage: en_US
+                    deviceLocation: 37.7749,-122.4194
+                    deviceCellularProvider: Vodafone, Telekom
+                    deviceOperatingSystem: iOS
+                    deviceTimeZone: Europe/Berlin
+                    deviceTime: '2020-01-01T12:00:00.000Z'
+                    additionalPropertyExample: some value
+                  flowType: Standard
+              p2p-payment-with-share-id:
+                value:
+                  amount:
+                    euroCents: 4900
+                  title: "\U0001F9F3\U0001F304\U0001F4B6"
+                  message: "For our weekend trip \U0001F64F."
+                  payerPaymentMeansId: 45f2b62f-f7ee-4db4-be77-380e10f90f1e
+                  payeeShareId: gLG
+                  flowType: StandardAsync
+      tags:
+      - p2p-payments
+components:
+  schemas:
+    MtPaymentOrigin:
+      description: The payment origin describes the origin of the payment and whether it is coming from a payee-based request or not (Direct).
+      oneOf:
+      - $ref: '#/components/schemas/P2PPaymentOriginRequest'
+      - $ref: '#/components/schemas/P2PPaymentOriginOpenRequest'
+      - $ref: '#/components/schemas/P2PPaymentOriginShareId'
+      - $ref: '#/components/schemas/P2PPaymentOriginDirect'
+      discriminator:
+        propertyName: type
+        mapping:
+          P2PRequest: '#/components/schemas/P2PPaymentOriginRequest'
+          P2POpenRequest: '#/components/schemas/P2PPaymentOriginOpenRequest'
+          ShareId: '#/components/schemas/P2PPaymentOriginShareId'
+          Direct: '#/components/schemas/P2PPaymentOriginDirect'
+    MtPartyName:
+      title: The party name.
+      description: 'The name of the respective party (originator, beneficiary) of the payment (P001, E001). In case of a payee, the display name follows VoP rules: either the account holder name or the
+        KYC consumer name, obfuscated or not.'
+      type: string
+      minLength: 1
+      maxLength: 70
+    P2PPaymentOriginDirect:
+      type: object
+      description: A _direct_ P2P payment does not originate from any kind of request.
+      properties:
+        type:
+          description: This property is a discriminator; its value is always `Direct`. A _direct_ P2P payment does not originate from any kind of request.
+          const: Direct
+      required:
+      - type
+    FlowType:
+      title: P2P Flow Type
+      description: 'The action flow in which the payment was created. This consists of the following types:
+
+        - Standard: After a consumer PSP implements the `MoneyTransfer` route, the EPI central services call this route during P2P payment approval to trigger the SCT-Inst money transfer.
+
+        - StandardSync: As the `Standard` flow, but the consumer PSP sends the final payment status as response to the `MoneyTransfer` call.
+
+        - StandardAsync: As the `Standard` flow, but the consumer PSP eventually sends the final payment status via the ["Consumer PSP Events" route](ref:post-consumer-psp-events).
+
+        - Alternative: The payer''s consumer PSP handles the payment process directly and eventually sends the final payment status via the ["Consumer PSP Events" route](ref:post-consumer-psp-events).'
+      type: string
+      enum:
+      - Standard
+      - StandardSync
+      - StandardAsync
+      - Alternative
+    paymentRuleResourceItem:
+      oneOf:
+      - $ref: '#/components/schemas/paymentRuleResourceItemFixed'
+      - $ref: '#/components/schemas/paymentRuleResourceItemCyclic'
+      - $ref: '#/components/schemas/paymentRuleResourceItemSliding'
+      discriminator:
+        propertyName: type
+        mapping:
+          Fixed: '#/components/schemas/paymentRuleResourceItemFixed'
+          Cyclic: '#/components/schemas/paymentRuleResourceItemCyclic'
+          Sliding: '#/components/schemas/paymentRuleResourceItemSliding'
+    P2PPaymentBaseSchema:
+      title: P2P Payment [Consumer PSP]
+      type: object
+      description: This is a P2P payment resource as returned via a consumer PSP access token.
+      properties:
+        id:
+          type: string
+          description: ID of the P2P payment. The [create a money transfer](ref:put-money-transfers) endpoint uses this ID as the `moneyTransferId`.
+          format: uuid
+        amount:
+          $ref: '#/components/schemas/Money'
+        title:
+          type: string
+          description: Large text or emojis used as message title, limited to three characters.
+          example: "\U0001F382\U0001F37D\uFE0F\U0001F4B6"
+        message:
+          type: string
+          description: 'Message that is sent to the payee. *Important notice*: This field is going to be marked as optional in the first release of December 2024 to match the optionality of this field in
+            the request body, when creating a P2P payment.'
+        paymentReference:
+          $ref: '#/components/schemas/PaymentReference'
+        created:
+          type: string
+          format: date-time
+          description: 'Date and time at which the P2P payment was created. (Format: Timestamp)'
+          example: '2023-05-03T10:39:16.425084691Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: 'Date and time at which the P2P payment was updated. (Format: Timestamp)'
+          example: '2023-05-03T10:39:16.425084691Z'
+        status:
+          $ref: '#/components/schemas/p2pPaymentStatus'
+        _embedded:
+          type: object
+          description: Embedded, related resources.
+          required:
+          - paymentRules
+          properties:
+            paymentRules:
+              type: object
+              title: Payment rules
+              description: The payment plan is converted into payment rules, which are a parameterised version of the payment plan details. The payment plan is more readable than the payment rules. The
+                payment rules describe one or more payments that consumers consent to.
+              properties:
+                paymentRules:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/paymentRuleResourceItem'
+              required:
+              - paymentRules
+            paymentDataset:
+              $ref: '#/components/schemas/MoneyTransferDatasetResource'
+              description: Embedded transaction resource that contains the information for completing the SCT Inst template. Retrievable by the consumer PSP, not the wallet.
+            payeeContact:
+              $ref: '#/components/schemas/ConsumerProfile'
+            payerContact:
+              $ref: '#/components/schemas/ConsumerProfile'
+            p2pRequest:
+              type: object
+              description: Embedded P2P Request resource if the payment was created from a P2P request.
+            p2pOpenRequest:
+              type: object
+              description: Embedded P2P open request resource if the payment was created from a P2P open request.
+        _links:
+          type: object
+          description: HAL links to related resources.
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+            fraudRiskInformation:
+              description: Is returned only when a consumer PSP makes the request.
+              $ref: '#/components/schemas/link'
+        viewerType:
+          type: string
+          description: The type of the viewer of the P2P payment.
+          const: Unknown
+          enum:
+          - Unknown
+      required:
+      - id
+      - amount
+      - status
+      - created
+      - updatedAt
+      - _embedded
+      - _links
+      - viewerType
+    P2PPaymentOriginShareId:
+      type: object
+      description: A share ID QR code (static QR code that does not expire) can result in either a P2P payment from the consumer scanning it or a P2P Request towards the consumer who shared their QR code,
+        leading to a P2P payment on approval.
+      properties:
+        type:
+          description: This property is a discriminator; its value is always `ShareId`. A share ID QR code (static QR code that does not expire) can result in either a P2P payment from the consumer scanning
+            it or a P2P Request towards the consumer who shared their QR code, leading to a P2P payment on approval.
+          const: ShareId
+        shareId:
+          type: string
+          minLength: 1
+          description: The share ID value (part of the QR code share URL).
+      required:
+      - type
+      - shareId
+    PagedCollectionResourceLinks:
+      type: object
+      properties:
+        self:
+          $ref: '#/components/schemas/link'
+        first:
+          $ref: '#/components/schemas/link'
+        last:
+          $ref: '#/components/schemas/link'
+        prev:
+          $ref: '#/components/schemas/link'
+        next:
+          $ref: '#/components/schemas/link'
+      required:
+      - self
+      - first
+      - last
+    P2PPaymentPayerLinks:
+      type: object
+      description: HAL links to related resources.
+      required:
+      - self
+      properties:
+        self:
+          $ref: '#/components/schemas/link'
+        approval:
+          $ref: '#/components/schemas/link'
+        cancellation:
+          $ref: '#/components/schemas/link'
+        fraudRiskInformation:
+          description: Is returned only when a consumer PSP makes the request.
+          $ref: '#/components/schemas/link'
+    MtCategoryPurpose:
+      title: Category purpose of the EPI payment.
+      description: The category purpose of the EPI payment (T008). The value is always set to EPI.
+      type: string
+      oneOf:
+      - type: string
+        const: EPI
+        default: EPI
+        title: EPI
+        enum:
+        - EPI
+      - type: string
+        minLength: 0
+        maxLength: 35
+        not:
+          enum:
+          - EPI
+        title: Any string
+    MtRemittanceInfo:
+      title: Remittance information.
+      description: The remittance information (T009) that must be sent for the SCT inst. This information is the message that the payer wrote for the payee during the send-money procedure in the standalone
+        Wero digital wallet or mobile banking app. If the payer adds a message, it is mandatory to send the remittance information. However, if the consumer adds no message, sending an empty string or omitting
+        the empty `remittanceinfo` element is acceptable. Different rules apply for local-market and cross-border transactions. For more information, see [Settlement triggering - data requirements](doc:settlement-triggering#212-data-requirements).
+      type: string
+      maxLength: 140
+    proxyHash:
+      title: proxyHash
+      type: string
+      pattern: ^[a-zA-Z0-9\-_=]{44}$
+      minLength: 44
+      maxLength: 44
+      example: PZGI4MTD8kVdbysQMF8ztCykGY87PLIhrg-1qfxPPrg=
+      description: Hashed proxy of a payee or payer.
+    Money:
+      title: Money
+      type: object
+      properties:
+        euroCents:
+          type: integer
+          description: 'The minimum `euroCents` value is `1`. `euroCents: 100` represents one euro.'
+      description: 'Amounts of money in the API are represented as objects with a single property that describes both the currency (for example, euro) and the unit (which is usually the minor unit of the
+        currency, for example, cents).
+
+
+        Currently, the only supported representation is euroCents, as shown in the example.
+
+
+        Other currencies will be added as needed.'
+      examples:
+      - euroCents: 4900
+    P2PPaymentOriginOpenRequest:
+      type: object
+      description: A payment that originates from a P2P open request (stateful QR code / share via link).
+      properties:
+        type:
+          description: This property is a discriminator; its value is always `P2POpenRequest`. A payment that originates from a P2P open request (stateful QR code / share via link).
+          const: P2POpenRequest
+        id:
+          type: string
+          format: uuid
+          description: The ID of the P2P open request.
+          examples:
+          - 123e4567-e89b-12d3-a456-426614174000
+        viewsCount:
+          type: integer
+          minimum: 0
+          description: The number of views the link / QR code has received (total number of calls to the [Decode share URL](ref:post-api-share-url-decode) route).
+          examples:
+          - 5
+        linkedP2PPaymentIds:
+          type: array
+          items:
+            type: string
+          description: The IDs of all P2P payments originating from this P2P open request.
+          examples:
+          - - 123e4567-e89b-12d3-a456-426614174000
+            - 345e6789-e12b-34c5-d678-987654321000
+        settledP2PPaymentIds:
+          type: array
+          items:
+            type: string
+          description: The IDs of the P2P payments associated to this open request that have been settled.
+          examples:
+          - - 123e4567-e89b-12d3-a456-426614174000
+            - 987e6543-e21b-34c5-d678-987654321000
+        expiryDuration:
+          type: integer
+          minimum: 0
+          description: The duration in seconds after which the P2P payment request was configured to expire. A shorter duration may indicate QR code usage rather than a shared link.
+          examples:
+          - 3600
+        totalExpectedPayments:
+          type: integer
+          minimum: 0
+          description: The total number of payments expected to be made against this open request. If this value is not provided, the open request can be paid an unlimited number of times until it expires.
+            If this number is reached, the open request cannot be paid any more.
+          examples:
+          - 1
+      required:
+      - type
+      - id
+      - viewsCount
+      - linkedP2PPaymentIds
+      - settledP2PPaymentIds
+      - expiryDuration
+    MoneyTransferDatasetResource:
+      title: Schema of a money transfer request for a P2P(ro) payment.
+      type: object
+      required:
+      - originatorAccountIdentifier
+      - beneficiaryAccountIdentifier
+      - originatorName
+      - beneficiaryName
+      - originatorUnmodifiedName
+      - beneficiaryUnmodifiedName
+      - originatorReference
+      - amount
+      - categoryPurpose
+      - purpose
+      - remittanceInfo
+      - isOriginatedFromP2PRequest
+      - paymentOrigin
+      properties:
+        originatorAccountIdentifier:
+          $ref: '#/components/schemas/AccountIdentifier'
+        beneficiaryAccountIdentifier:
+          $ref: '#/components/schemas/AccountIdentifier'
+        originatorName:
+          $ref: '#/components/schemas/MtPartyName'
+        beneficiaryName:
+          $ref: '#/components/schemas/MtPartyName'
+        originatorUnmodifiedName:
+          type: string
+          description: The unmodified name of the originator.
+        beneficiaryUnmodifiedName:
+          type: string
+          description: The unmodified name of the beneficiary.
+        originatorReference:
+          $ref: '#/components/schemas/MtOriginatorReference'
+        amount:
+          $ref: '#/components/schemas/Money'
+        categoryPurpose:
+          $ref: '#/components/schemas/MtCategoryPurpose'
+        purpose:
+          $ref: '#/components/schemas/MtPurpose'
+        remittanceInfo:
+          $ref: '#/components/schemas/MtRemittanceInfo'
+        isOriginatedFromP2PRequest:
+          deprecated: true
+          type: boolean
+          description: "> \u2757\uFE0FThis field is deprecated and will be removed after November 2025. This field is replaced by `paymentOrigin` with the `P2PRequest` type.\nIndicates whether the payment\
+            \ originated in a P2PRequest."
+        paymentOrigin:
+          $ref: '#/components/schemas/MtPaymentOrigin'
+        _links:
+          type: object
+          description: HAL links to related resources.
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+    AliasIdentifier:
+      title: Alias account identifier
+      type: object
+      required:
+      - type
+      - alias
+      - maskedIban
+      description: The IBAN alias, which identifies the account if the PSP does not permit EPI to store IBANs.
+      properties:
+        type:
+          type: string
+          enum:
+          - Alias
+        alias:
+          type: string
+          description: The IBAN alias for this account.
+          pattern: ^[-a-zA-Z0-9/?:().,'+\s]{8,50}$
+        maskedIban:
+          type: string
+          description: 'The masked IBAN of this account. Since EPI has no information for generating a masked IBAN but needs the masked IBAN for display purposes, the PSP must provide the masked IBAN.
+
+            '
+          minLength: 8
+          maxLength: 34
+          example: DE12********7890
+    P2PPaymentPayerSchema:
+      title: P2P Payment [Wallet] (as a payer)
+      type: object
+      description: This is a P2P payment as seen by the payer wallet.
+      properties:
+        id:
+          type: string
+          description: ID of the P2P payment. The [create a money transfer](ref:put-money-transfers) endpoint uses this ID as the `moneyTransferId`.
+          format: uuid
+        amount:
+          $ref: '#/components/schemas/Money'
+        title:
+          type: string
+          description: Large text or emojis used as message title, limited to three characters.
+          example: "\U0001F382\U0001F37D\uFE0F\U0001F4B6"
+        message:
+          type: string
+          description: 'Message that is sent to the payee. *Important notice*: This field is going to be marked as optional in the first release of December 2024 to match the optionality of this field in
+            the request body, when creating a P2P payment.'
+        paymentReference:
+          $ref: '#/components/schemas/PaymentReference'
+        payerPaymentMeansId:
+          type: string
+          format: uuid
+          description: The means of payment that is used to make the payment.
+          example: 45f2b62f-f7ee-4db4-be77-380e10f90f1e
+        payerPaymentSourceId:
+          type: string
+          format: uuid
+          description: The payment source ID of the payer. It might not be present for payments older than July 2024.
+          example: 1b3e8663-eef2-4453-8230-7ccc74da2bed
+        payeePaymentSourceId:
+          type: string
+          format: uuid
+          description: The payment source ID of the payee. This is only set in case the payee is the same consumer as the payer.
+          example: 9a1c3e2b-3f4d-4c5e-8f6a-7b8c9d0e1f2a
+        payeeProxyHash:
+          $ref: '#/components/schemas/proxyHash'
+        created:
+          type: string
+          format: date-time
+          description: 'Date and time at which the P2P payment was created. (Format: Timestamp)'
+          example: '2023-05-03T10:39:16.425084691Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: 'Date and time at which the P2P payment was updated. (Format: Timestamp)'
+          example: '2023-05-03T10:39:16.425084691Z'
+        status:
+          $ref: '#/components/schemas/p2pPaymentStatus'
+        _embedded:
+          type: object
+          description: Embedded, related resources.
+          required:
+          - paymentRules
+          properties:
+            consent:
+              $ref: '#/components/schemas/ConsentPayloadResource'
+              description: This is a consent payload for a P2P payment approval (standard flow). It is only provided with an initial P2P payment.
+            paymentRules:
+              type: object
+              title: Payment rules
+              description: The payment plan is converted into payment rules, which are a parameterised version of the payment plan details. The payment plan is more readable than the payment rules. The
+                payment rules describe one or more payments that consumers consent to.
+              properties:
+                paymentRules:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/paymentRuleResourceItem'
+              required:
+              - paymentRules
+            paymentDataset:
+              $ref: '#/components/schemas/MoneyTransferDatasetResource'
+              description: Embedded transaction resource that contains the information for completing the SCT Inst template. Retrievable by the consumer PSP if the P2P payment status is still Initial. Not
+                retrievable by the wallet.
+            payeeContact:
+              $ref: '#/components/schemas/ConsumerProfile'
+            payerContact:
+              $ref: '#/components/schemas/ConsumerProfile'
+            p2pRequest:
+              type: object
+              description: 'Embedded P2P Request resource if the payment was created from a P2P request. '
+            p2pOpenRequest:
+              type: object
+              description: Embedded P2P open request resource if the payment was created from a P2P open request.
+        _links:
+          $ref: '#/components/schemas/P2PPaymentPayerLinks'
+        viewerType:
+          type: string
+          description: The type of the viewer of the P2P payment.
+          const: Payer
+          enum:
+          - Payer
+      required:
+      - id
+      - amount
+      - status
+      - payerPaymentMeansId
+      - created
+      - updatedAt
+      - _embedded
+      - _links
+      - viewerType
+    ConstraintViolationProblem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type only in the context of the provided endpoint.
+          const: /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          default: Constraint Violation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          default: 400
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+        violations:
+          type: array
+          description: A list of constraint violations.
+          items:
+            type: object
+            required:
+            - field
+            - message
+            properties:
+              field:
+                type: string
+                description: The name of the field that caused the constraint violation.
+              message:
+                type: string
+                description: A technical message that describes the constraint violation, in English.
+              userMessageKey:
+                type: string
+                description: A key that describes the type of constraint violation, useful to report user input validation error. The key can be used to look up a localised message for instance, that can
+                  then be interpolated using the `userMessageValue`.
+                example: constraint.string.min-length
+                oneOf:
+                - type: string
+                  title: Standard constraint violation key
+                  description: 'All known standard constraint violation keys: * **constraint.required**: The field is required. * **constraint.type**: The field must be of the correct type. * **constraint.enum**:
+                    The field must be one of the allowed values. `userMessageValue` contains the list as a string value. * **constraint.const**: The field must be a specific value. `userMessageValue` contains
+                    the value as a string value. * **constraint.number.multiple-of**: The field must be a multiple of a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-inclusive**:
+                    The field must be less than or equal to a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-exclusive**: The field must be less
+                    than a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.minimum-inclusive**: The field must be greater than or equal to a specific number.
+                    `userMessageValue` contains the number as a string value.            * **constraint.number.minimum-exclusive**: The field must be greater than a specific number. `userMessageValue` contains
+                    the number as a string value. * **constraint.string.max-length**: The field must be at most a specific number of characters long. `userMessageValue` contains the number as a string value.
+                    * **constraint.string.min-length**: The field must be at least a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.min-length-not-blank**:
+                    The field must be at least a specific number of characters long and not blank. `userMessageValue` contains the number as a string value. * **constraint.string.max-graphemes**: The field
+                    must be at most a specific number of graphemes long. `userMessageValue` contains the number as a string value. * **constraint.string.pattern**: The field must match a specific pattern.
+                    * **constraint.string.length**: The field must be a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.url**: The field
+                    must be a valid URL. * **constraint.string.url-https**: The field must be a valid HTTPS URL. * **constraint.string.uuid4**: The field must be a valid UUID v4. * **constraint.string.email**:
+                    The field must be a valid email address. * **constraint.string.phone-number**: The field must be a valid phone number. * **constraint.duration.min-seconds**: The field must be at least
+                    a specific number of seconds long. `userMessageValue` contains the number as a string value. * **constraint.duration.max-days**: The field must be at most a specific number of days long.
+                    `userMessageValue` contains the number as a string value. * **constraint.datetime.before**: The field must be before a specific date and time. `userMessageValue` contains the `datetime`
+                    as a timestamp string value. * **constraint.array.min-items**: The field must contain at least a specific number of items. `userMessageValue` contains the number as a string value. *
+                    **constraint.array.max-items**: The field must contain at most a specific number of items. `userMessageValue` contains the number as a string value. * **constraint.array.unique-items**:
+                    The field must contain only unique items. * **constraint.amount.maximum**: The field must be less than or equal to a specific amount. * **constraint.amount.minimum**: The field must
+                    be greater than or equal to a specific amount. * **constraint.currency-supported**: The field must be a supported currency.'
+                  enum:
+                  - constraint.required
+                  - constraint.type
+                  - constraint.enum
+                  - constraint.const
+                  - constraint.number.multiple-of
+                  - constraint.number.maximum-inclusive
+                  - constraint.number.maximum-exclusive
+                  - constraint.number.minimum-inclusive
+                  - constraint.number.minimum-exclusive
+                  - constraint.string.max-length
+                  - constraint.string.min-length
+                  - constraint.string.min-length-not-blank
+                  - constraint.string.max-graphemes
+                  - constraint.string.pattern
+                  - constraint.string.length
+                  - constraint.string.url
+                  - constraint.string.url-https
+                  - constraint.string.uuid4
+                  - constraint.string.email
+                  - constraint.string.phone-number
+                  - constraint.duration.min-seconds
+                  - constraint.duration.max-days
+                  - constraint.datetime.before
+                  - constraint.array.min-items
+                  - constraint.array.max-items
+                  - constraint.array.unique-items
+                  - constraint.amount.maximum
+                  - constraint.amount.minimum
+                  - constraint.currency-supported
+                - type: string
+                  description: Placeholder for a future user message key.
+                  title: Placeholder for future message keys
+                  not:
+                    enum:
+                    - constraint.required
+                    - constraint.type
+                    - constraint.enum
+                    - constraint.const
+                    - constraint.number.multiple-of
+                    - constraint.number.maximum-inclusive
+                    - constraint.number.maximum-exclusive
+                    - constraint.number.minimum-inclusive
+                    - constraint.number.minimum-exclusive
+                    - constraint.string.max-length
+                    - constraint.string.min-length
+                    - constraint.string.min-length-not-blank
+                    - constraint.string.max-graphemes
+                    - constraint.string.pattern
+                    - constraint.string.length
+                    - constraint.string.url
+                    - constraint.string.url-https
+                    - constraint.string.uuid4
+                    - constraint.string.email
+                    - constraint.string.phone-number
+                    - constraint.duration.min-seconds
+                    - constraint.duration.max-days
+                    - constraint.datetime.before
+                    - constraint.array.min-items
+                    - constraint.array.max-items
+                    - constraint.array.unique-items
+                    - constraint.amount.maximum
+                    - constraint.amount.minimum
+                    - constraint.currency-supported
+              userMessageValue:
+                type: string
+                description: A string value that can be used to replace a placeholder in the localised message.
+      required:
+      - type
+      - title
+      - status
+      - violations
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type, only in the context of the provided endpoint.
+          default: about:blank
+          example: /some/uri-reference
+          not:
+            enum:
+            - /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          example: some title for the error situation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem, which helps locate the problem and describes how to proceed.
+          example: some description for the error situation
+        instance:
+          type: string
+          format: uri-reference
+          description: A URI reference that identifies the specific occurrence of the problem, for example, by adding a fragment identifier or sub-path to the problem type. Can be used to locate the root
+            of the problem in the source code.
+          example: /some/uri-reference#specific-occurrence-context
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+      required:
+      - type
+      - title
+      - status
+    P2PPaymentOriginRequest:
+      type: object
+      description: A payment that originates from a P2P request (in-app request).
+      properties:
+        type:
+          description: This property is a discriminator; its value is always `P2PRequest`. A payment that originates from a P2P request (in-app request).
+          const: P2PRequest
+        id:
+          type: string
+          format: uuid
+          description: The ID of the P2P request.
+          examples:
+          - 123e4567-e89b-12d3-a456-426614174000
+      required:
+      - type
+      - id
+    paymentRuleResourceItemSliding:
+      type: object
+      description: Payment rule that defines a _sliding_ period during which the given constraints must be satisfied.
+      properties:
+        type:
+          type: string
+          description: 'Type of the payment rules: fixed, cyclic or sliding.'
+          enum:
+          - Sliding
+        constraint:
+          $ref: '#/components/schemas/paymentRuleResourceItemConstraint'
+        duration:
+          type: string
+          example: PT45M
+          description: 'Duration (compliant with ISO 8601) of the window during which the payment constraint must be valid.  '
+      required:
+      - type
+      - constraint
+      - duration
+    page:
+      type: object
+      examples:
+      - size: 1
+        totalElements: 1
+        totalPages: 1
+        number: 0
+        requestedPageSize: 10
+        limitReached: false
+      properties:
+        size:
+          type: integer
+          description: The number of elements on the page.
+        totalElements:
+          type: integer
+          description: The total number of elements available with the query.
+        totalPages:
+          type: integer
+          description: The total number of pages available, using the requested page size.
+        number:
+          type: integer
+          description: The number of the current page. Page numbers start at `0` and continue to the total number of pages.
+        requestedPageSize:
+          type: integer
+          description: The requested page size. The value of "size" might differ for the last page if the last page is not full.
+        limitReached:
+          type: boolean
+          description: If `true`, an internal limit when retrieving results was exceeded. Not all elements are returned.
+      description: A paginated resource is a HAL resource. The resource contains the page object, which describes the provided subset of data. The data is provided as an embedded collection resource. The
+        name of the collection depends on the endpoint. HAL links are also provided, for navigation.
+      title: Structure of a paginated response
+      required:
+      - size
+      - totalElements
+      - totalPages
+      - number
+      - requestedPageSize
+      - limitReached
+    paymentRuleResourceItemFixed:
+      type: object
+      properties:
+        type:
+          type: string
+          description: 'Type of the payment rules: fixed, cyclic or sliding.'
+          enum:
+          - Fixed
+        constraint:
+          $ref: '#/components/schemas/paymentRuleResourceItemConstraint'
+        startOffset:
+          type: string
+          description: An offset (compliant with ISO 8601) that defines the start time of the window during which payment can be collected.   The start time is then the offset amount of time _after_ the
+            time that the consumer gave consent.
+          example: PT-5S
+        windowDuration:
+          type: string
+          description: Duration (compliant with ISO 8601) of the window during which payment can be collected. Begins at the start time defined by `startOffset`.
+          example: PT5M
+      required:
+      - type
+      - constraint
+      - startOffset
+      - windowDuration
+    MtPurpose:
+      title: Purpose of the EPI payment.
+      description: The purpose of this EPI payment (T007). The value is set to MP2P for P2P payments and MP2B for P2Pro payments.
+      type: string
+      minLength: 4
+      maxLength: 4
+      enum:
+      - MP2P
+      - MP2B
+    p2pPaymentStatus:
+      title: P2P-payment status type
+      type: string
+      enum:
+      - Initial
+      - Canceled
+      - Approved
+      - Accepted
+      - Rejected
+      - Settled
+      - Failed
+      - Expired
+      example: Settled
+      description: "The status of a P2P Payment resource can have the following values:\n\n\n|    Value   |                                      Description                                             \
+        \                                                               |\n|:----------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------:|\n\
+        | `Initial`  | The initial status. The payer has not yet approved the P2P payment.                                                                                         |\n| `Canceled` | The payer\
+        \ has canceled the P2P payment.                                                                                                                     |\n| `Approved` | The payer has approved the P2P\
+        \ payment.                                                                                                                     |\n| `Accepted` | The payer's PSP has accepted the order to settle\
+        \ the P2P payment.                                                                                           |\n| `Rejected` | The payer's PSP has rejected the order to settle the P2P payment. \
+        \                                                                                          |\n| `Settled`  | The money has been transferred and has reached the beneficiary\u2019s account.      \
+        \                                                                             |\n| `Failed`   | The payer's PSP attempted to settle the payment, but the settlement failed. Note that the status is\
+        \ `Failed` even if the _payee's_ PSP rejected the payment.|\n| `Expired`  | EPI has expired the payment because the payer didn\u2019t approve it within the required timeframe.                  \
+        \                                            |"
+    ConsentPayloadResource:
+      type: object
+      properties:
+        payload:
+          type: string
+          description: The consent payload in JSON format.
+        createdAt:
+          type: string
+          format: date-time
+          description: The date and time when the consent payload was generated.
+        expiresAt:
+          type: string
+          format: date-time
+          description: The date and time when the consent payload expires.
+        _links:
+          type: object
+          properties:
+            self:
+              type: object
+              properties:
+                href:
+                  type: string
+                  description: The URL of the consent payload resource.
+              required:
+              - href
+          required:
+          - self
+      required:
+      - payload
+      - createdAt
+      - expiresAt
+      - _links
+    paymentRuleResourceItemCyclic:
+      type: object
+      properties:
+        type:
+          type: string
+          description: 'Type of the payment rules: fixed, cyclic or sliding.'
+          enum:
+          - Cyclic
+        constraint:
+          $ref: '#/components/schemas/paymentRuleResourceItemConstraint'
+        startOffset:
+          type: string
+          description: An offset (compliant with ISO 8601) that defines the start time of the window during which payment can be collected.   The start time is then the offset amount of time _after_ the
+            time that the consumer gave consent.
+          example: PT-5S
+        windowDuration:
+          type: string
+          description: Duration (compliant with ISO 8601) of the window during which payment can be collected. Begins at the start time defined by `startOffset`.
+          example: PT5M
+        modifications:
+          type: array
+          items:
+            type: object
+            description: A modification of a cyclic payment window that replaces one or more cycle definitions.   Enables subscriptions to be modelled that, for example, start with a free or discounted
+              trial period.
+            properties:
+              cycleIndexes:
+                type: string
+                description: The index of the cycle that is modified or replaced.
+                pattern: '[0-9]+[.]{2}[0-9]+'
+                example: 2..10
+              constraint:
+                $ref: '#/components/schemas/paymentRuleResourceItemConstraint'
+        repetition:
+          type: string
+          enum:
+          - Weekly
+          - Monthly
+          - Quarterly
+          - HalfYearly
+          - Yearly
+      required:
+      - type
+      - constraint
+      - startOffset
+      - windowDuration
+      - modifications
+      - repetition
+    IbanIdentifier:
+      title: IBAN account identifier
+      type: object
+      required:
+      - type
+      - iban
+      description: An IBAN, if the consumer PSP permits EPI to store IBANs. This IBAN must have a valid checksum and a country code from a supported country. For more information, see the [IBAN checker](https://www.iban.com/iban-checker)
+        on the IBAN validation and calculation website.
+      properties:
+        type:
+          type: string
+          enum:
+          - IBAN
+        iban:
+          $ref: '#/components/schemas/IBAN'
+    link:
+      type: object
+      properties:
+        href:
+          type: string
+          format: uri
+        name:
+          type: string
+      required:
+      - href
+    paymentRuleResourceItemConstraint:
+      type: object
+      description: 'Type of the payment constraint: Single or Multiple.'
+      properties:
+        type:
+          type: string
+          enum:
+          - Single
+          - Multiple
+          description: Specifies whether the consent is for a single capture or for multiple captures. In the case of multiple captures, the sum of all captures must not exceed the maxAmount.
+        maxAmount:
+          $ref: '#/components/schemas/Money'
+      required:
+      - type
+      - maxAmount
+    MtOriginatorReference:
+      title: Originator reference.
+      description: 'The originator reference identifies each SCT Inst Instruction presented to the originator PSP for an originator in a unique way. This number will be transmitted in the entire process
+        of the handling of the SCT Inst Transaction from acceptance until the transaction completes. Any provider involved in the transaction must return the originator reference in any exception-handling
+        process-step. The originator cannot request for any other referencing information to be returned to them to identify an SCT Inst.
+
+
+        The originator must define the internal structure of this reference; it can only be expected to be meaningful to the originator.
+
+
+        The originator PSP must include this value as the ''originator''s reference (T014)'' attribute in the SCT Inst. EPI central services create this reference on behalf of the originator. Currently,
+        references are created by removing the four hyphens from the `moneyTransferId`. However, the format is subject to change.
+
+
+        If any party contacts EPI central services for SCT Inst exception handling, that party must provide the originator''s reference. With the current format, EPI central services will re-insert the
+        hyphens to obtain the `moneyTransferId` to investigate the exception.'
+      type: string
+      minLength: 1
+      maxLength: 35
+    IBAN:
+      type: string
+    InboundConsumerDeviceTelemetry:
+      type: object
+      title: Consumer device telemetry
+      description: 'Telemetry data ("device fingerprint") of the device used by the consumer.
+
+
+        EPI cannot guarantee consumer PSPs will send a complete set of consumer device telemetry properties, and therefore they are treated as optional.
+
+
+        It is possible to send additional properties in this object, which EPI will pass on verbatim to EPI''s fraud scoring service provider for evaluation.
+
+
+        This is to allow for easier integration on the consumer PSP side.
+
+
+        However, PSPs are strongly encouraged to provide values for the properties as specified here where possible in order for EPI to provide the best possible fraud scoring.'
+      additionalProperties: true
+      properties:
+        deviceIpAddress:
+          description: The IPv4 or IPv6 address of the consumer's device.
+          type: string
+          example: 192.0.2.123
+        devicePort:
+          description: The ephemeral port of the consumer's device.
+          type: integer
+          example: 52314
+        deviceUserAgent:
+          description: The user agent string of the device used by the consumer. This will often contain information redundantly captured in the `deviceOs` and `deviceModel` properties.
+          type: string
+          maxLength: 256
+          examples:
+          - Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 ...
+          - Mozilla/5.0 (Linux; Android 10; Pixel 3) AppleWebKit/537.36...
+        deviceModel:
+          description: The model of the device used by the consumer.
+          type: string
+          maxLength: 256
+          examples:
+          - iPhone12,1
+          - Pixel 3
+        deviceScreenResolution:
+          description: The screen resolution of the device used by the consumer, in pixels (width x height).
+          type: string
+          examples:
+          - 828x1792
+          - 1080x2280
+        deviceCellularProviders:
+          type: string
+          maxLength: 256
+          description: The cellular provider(s) of the device used by the consumer. This is a comma-separated list of the names of the cellular providers.
+          examples:
+          - Telekom, Vodafone
+          - T-Mobile
+        deviceLocation:
+          description: The location of the device used by the consumer. This is a comma-separated list of the latitude and longitude of the device.
+          type: string
+          example: 37.7749,-122.4194
+        deviceTimeZone:
+          description: The time zone of the device used by the consumer.
+          type: string
+          maxLength: 256
+          example: America/Los_Angeles
+        deviceId:
+          description: 'The unique device identifier of the device used by the consumer. Note: Formats differ (UUID on iOS vs. 64-bit hex string on Android).'
+          type: string
+          maxLength: 256
+          examples:
+          - 6fc1c567-a4cd-45c5-9e44-c5a5b9a6f09a
+          - 2b6f0cc904d137be2e1730235f5664094b831186
+        deviceOs:
+          description: The operating system of the device used by the consumer.
+          type: string
+          examples:
+          - iOS
+          - Android
+        deviceLanguage:
+          description: The language of the device used by the consumer.
+          type: string
+          example: en_US
+        deviceTime:
+          description: The time on the device used by the consumer, in ISO 8601 format.
+          type: string
+          format: date-time
+          example: '2023-09-25T12:34:56Z'
+    ConsumerProfile:
+      title: ConsumerProfile
+      type: object
+      properties:
+        displayName:
+          type: string
+          description: 'The consumer''s name. Depending on the consumer''s personal choice, the consumer name is either the full name as provided by the consumer PSP or an obfuscated name in the form of
+            a pseudonym or masked name. In case of a payee, the display name follows VoP rules: either the account holder name or the KYC consumer name, obfuscated or not.'
+        proxyValue:
+          type: string
+          description: Proxy value linked to that consumer.
+        pro:
+          type: boolean
+          description: Indicates whether the payment source linked to the consumer is a business account (P2Pro).
+        isBlocked:
+          type: boolean
+          description: Indicates whether the consumer has been blocked by their counterpart.
+      required:
+      - displayName
+      - pro
+    P2PPaymentSchema:
+      oneOf:
+      - $ref: '#/components/schemas/P2PPaymentPayerSchema'
+      - $ref: '#/components/schemas/P2PPaymentPayeeSchema'
+      - $ref: '#/components/schemas/P2PPaymentBaseSchema'
+      discriminator:
+        propertyName: viewerType
+        mapping:
+          Payee: '#/components/schemas/P2PPaymentPayeeSchema'
+          Payer: '#/components/schemas/P2PPaymentPayerSchema'
+          Unknown: '#/components/schemas/P2PPaymentBaseSchema'
+    AccountIdentifier:
+      description: 'A polymorphic type that identifies an account. The value can be of one of the following types.
+
+        - An IBAN, if the consumer PSP permits EPI to store IBANs. This IBAN must have a valid checksum and a country code from a supported country. For more information, see the [IBAN checker](https://www.iban.com/iban-checker)
+        on the IBAN validation and calculation website.
+
+        - An alias for the IBAN, if the consumer PSP does not permit EPI to store IBANs.
+
+        '
+      type: object
+      oneOf:
+      - $ref: '#/components/schemas/IbanIdentifier'
+      - $ref: '#/components/schemas/AliasIdentifier'
+      discriminator:
+        propertyName: type
+        mapping:
+          IBAN: '#/components/schemas/IbanIdentifier'
+          Alias: '#/components/schemas/AliasIdentifier'
+    PaymentReference:
+      title: Payment Reference
+      type: string
+      description: 'The reference that is used for the payment. Limited to 140 SEPA characters.
+
+        This will be used within the remittance information of the payment.
+
+        Set this field only in a P2Pro transaction context.'
+      pattern: '[-a-zA-Z0-9/?:().,''+\s]*'
+      maxLength: 140
+    P2PPaymentPayeeSchema:
+      title: P2P Payment [Wallet] (as a payee)
+      type: object
+      description: This is a P2P payment as seen by the payee wallet.
+      properties:
+        id:
+          type: string
+          description: ID of the P2P payment. The [create a money transfer](ref:put-money-transfers) endpoint uses this ID as the `moneyTransferId`.
+          format: uuid
+        amount:
+          $ref: '#/components/schemas/Money'
+        title:
+          type: string
+          description: Large text or emojis used as message title, limited to three characters.
+          example: "\U0001F382\U0001F37D\uFE0F\U0001F4B6"
+        message:
+          type: string
+          description: 'Message that is sent to the payee. *Important notice*: This field is going to be marked as optional in the first release of December 2024 to match the optionality of this field in
+            the request body, when creating a P2P payment.'
+        paymentReference:
+          $ref: '#/components/schemas/PaymentReference'
+        payeePaymentSourceId:
+          type: string
+          description: ID of the payment source that received the payment.
+          format: uuid
+        created:
+          type: string
+          format: date-time
+          description: 'Date and time at which the P2P payment was created. (Format: Timestamp)'
+          example: '2023-05-03T10:39:16.425084691Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: 'Date and time at which the P2P payment was updated. (Format: Timestamp)'
+          example: '2023-05-03T10:39:16.425084691Z'
+        status:
+          $ref: '#/components/schemas/p2pPaymentStatus'
+        _embedded:
+          type: object
+          description: Embedded, related resources.
+          required:
+          - paymentRules
+          properties:
+            paymentRules:
+              type: object
+              title: Payment rules
+              description: The payment plan is converted into payment rules, which are a parameterised version of the payment plan details. The payment plan is more readable than the payment rules. The
+                payment rules describe one or more payments that consumers consent to.
+              properties:
+                paymentRules:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/paymentRuleResourceItem'
+              required:
+              - paymentRules
+            paymentDataset:
+              $ref: '#/components/schemas/MoneyTransferDatasetResource'
+              description: Embedded transaction resource that contains the information for completing the SCT Inst template. Retrievable by the consumer PSP, not the wallet.
+            payeeContact:
+              $ref: '#/components/schemas/ConsumerProfile'
+            payerContact:
+              $ref: '#/components/schemas/ConsumerProfile'
+            p2pRequest:
+              type: object
+              description: 'Embedded P2P Request resource if the payment was created from a P2P request. '
+            p2pOpenRequest:
+              type: object
+              description: Embedded P2P open request resource if the payment was created from a P2P open request.
+        _links:
+          type: object
+          description: HAL links to related resources.
+          required:
+          - self
+          - blockContact
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+            fraudRiskInformation:
+              $ref: '#/components/schemas/link'
+            blockContact:
+              $ref: '#/components/schemas/link'
+        viewerType:
+          type: string
+          description: The type of the viewer of the P2P payment.
+          const: Payee
+          enum:
+          - Payee
+      required:
+      - id
+      - amount
+      - status
+      - created
+      - updatedAt
+      - _embedded
+      - _links
+      - viewerType

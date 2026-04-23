@@ -1,0 +1,1511 @@
+openapi: 3.0.0
+info:
+  title: Wallets API
+  version: 1.0.0
+  description: API specification for wallets resource
+servers:
+- url: https://api.example.com
+paths:
+  /api/wallets:
+    servers: []
+    get:
+      tags:
+      - wallets
+      operationId: list-wallet-by-consumer-psp
+      parameters:
+      - name: page
+        in: query
+        description: The requested page number.
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: size
+        in: query
+        description: The requested page size. The data is split into pages of this size, and the numbering depends on this page size.
+        required: false
+        schema:
+          type: integer
+          minimum: 10
+          maximum: 100
+          default: 10
+      - name: sort
+        in: query
+        description: The sorting order. See [Pagination](ref:pagination) for more information.
+        required: false
+        schema:
+          type: string
+          default: created:desc
+      responses:
+        '200':
+          description: '200'
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                type: object
+                required:
+                - _links
+                - _embedded
+                - page
+                properties:
+                  _links:
+                    $ref: '#/components/schemas/PagedCollectionResourceLinks'
+                  _embedded:
+                    type: object
+                    required:
+                    - wallets
+                    properties:
+                      wallets:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/WalletSchema'
+                  page:
+                    $ref: '#/components/schemas/page'
+              examples:
+                Example 1:
+                  value:
+                    page:
+                      size: 1
+                      totalElements: 1
+                      totalPages: 1
+                      number: 0
+                      requestedPageSize: 10
+                      limitReached: false
+                    _links:
+                      self:
+                        href: https://api.epi-services.eu/api/wallets
+                      first:
+                        href: https://api.epi-services.eu/api/wallets
+                      last:
+                        href: https://api.epi-services.eu/api/wallets?page=5
+                    _embedded:
+                      wallets:
+                      - id: 1cc4ddd3-bd8c-4c8c-9c6a-d3dc15033de9
+                        walletName: Some Wallet
+                        consumerId: 83202f2e-907a-4c78-9d7e-feaccf3fb8a6
+                        host:
+                          type: Mobile
+                          device:
+                            id: 58c56856-e7c6-403a-9594-3e8ca1ceff0e
+                            name: Johnnys iPhone
+                            model: iPhone 14
+                          app:
+                            id: de.epicompany.wallet
+                            name: EPI Wallet
+                        walletPublicKey:
+                          kty: RSA
+                          use: sig
+                          alg: RS256
+                          kid: D4Fu6PAlz08woGwMOz2g1ZC6uOD_HR8BZzxEGraXadw
+                          n: utxN0wOR9cSSHdFjjrs6ZUspXmamxPeQd6ZjkR0Fc0C1hryzhUp6C3pk0lTcpH9N3xsZU_5j9NP3xIyzq4KXpQic5nAkFaanOoPWb_0UdfXTmE4V65I6RSbHAC_Awx-qMhdOh2vww9_JC76_UAdhB950BXDUyQ_ycWtkFCQDUS8wql9HbdaXpUwa22rILpJif6s_8QLSzARPOaQlapM-L4a63lmPoiG5ye9MUbmuzufvQc5Sb8kgW9AvpVVD22A-TrpppcDQCWtUcrQUfru-byXun5VQ5TqTGKbLolBfJ5l8rlpir5OHNpTafq7m04c38ucIvWD0fmAXSICzlutX8Q
+                          e: AQAB
+                        _links:
+                          self:
+                            href: https://api.epi-services.eu/api/wallets/1cc4ddd3-bd8c-4c8c-9c6a-d3dc15033de9
+                          provisionings:
+                            href: https://api.epi-services.eu/api/wallets/1cc4ddd3-bd8c-4c8c-9c6a-d3dc15033de9/provisionings
+                          paymentMeans:
+                            href: https://api.epi-services.eu/api/wallets/1cc4ddd3-bd8c-4c8c-9c6a-d3dc15033de9/provision-payment-means
+                        _embedded:
+                          paymentMeans: []
+                list-wallet-by-consumer-psp:
+                  value:
+                    _links:
+                      self:
+                        href: https://api.epi-services.eu/api/wallets?page=0&size=100&sort=%3Adesc
+                      first:
+                        href: https://api.epi-services.eu/api/wallets?page=0&size=100&sort=%3Adesc
+                      last:
+                        href: https://api.epi-services.eu/api/wallets?page=0&size=100&sort=%3Adesc
+                    _embedded:
+                      wallets:
+                      - id: 989f9b50-141c-4b5a-9aac-bcd8bdf4a885
+                        walletName: Some Wallet
+                        consumerId: af85b240-3727-4264-9e2e-2f9ab5984cc3
+                        host:
+                          type: Mobile
+                          device:
+                            id: 58c56856-e7c6-403a-9594-3e8ca1ceff0e
+                            name: Johnnys iPhone
+                            model: iPhone 14
+                          app:
+                            id: de.epicompany.wallet
+                            name: EPI Wallet
+                        walletPublicKey:
+                          kty: RSA
+                          use: sig
+                          alg: RS256
+                          kid: 74cf2532-c6c2-4586-acb3-6fce198acc5b
+                          n: vZl9LV2lmdaSn1CTfrpbIbkhuJZ4C-mb33JTSXGB9q7GuSW_eiFz5SUOK2p5JIXznabbazaywpYhyMBpw7tbnKSzBuQxRKQHPD-Li1hhV4abjr570hGmc0UyftpBWZz4_53-q6lp0hupi8getzDyfPiiDZvgyKIGHytYSvZCGeVHXzJQy6DNf2xyZxG8WwgKvpIcOi0FvlVDJgdlIQn3HGrW3xK1IJpHLzh_ucYDIhs4L864hdV2QzUZA7d_agbk7dbq7ZStZNF4J_KmbruouQ_edglZurKeh6xmiRcOqGfWqN-4gJXAT4gN6w_eslfkPAKRDOcyh4ig8GopQ6CD9w
+                          e: AQAB
+                        _links:
+                          self:
+                            href: https://api.epi-services.eu/api/wallets/989f9b50-141c-4b5a-9aac-bcd8bdf4a885
+                          provisionings:
+                            href: https://api.epi-services.eu/api/wallets/989f9b50-141c-4b5a-9aac-bcd8bdf4a885/provisionings
+                          paymentMeans:
+                            href: https://api.epi-services.eu/api/wallets/989f9b50-141c-4b5a-9aac-bcd8bdf4a885/provision-payment-means
+                          notification:
+                            href: https://api.epi-services.eu/api/wallets/989f9b50-141c-4b5a-9aac-bcd8bdf4a885/notification
+                        _embedded:
+                          paymentMeans: []
+                    page:
+                      size: 1
+                      totalElements: 1
+                      totalPages: 1
+                      number: 0
+                      requestedPageSize: 100
+                      limitReached: false
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+        '403':
+          $ref: '#/components/responses/errorResponse403'
+      description: 'Consumer PSPs and consumers can retrieve a list of all active wallets that they have provisioned.
+
+        If the request is made with a wallet access token containing a specific consumer ID, the endpoint will respond with all wallets created for that consumer ID. If the request is made with a consumer
+        PSP access token containing a specific consumer PSP ID, the endpoint will respond with all wallets created by that consumer PSP.
+
+        The list is paginated. Retrieving the full list might require multiple API calls when `page.totalPages` is greater than `0`. For more information, see [Pagination](/platform/reference/pagination).
+
+        ## Scope
+
+        This endpoint call does not require a scope.'
+      security:
+      - BearerAccessToken: []
+      summary: List provisioned wallets [Consumer PSP and Wallet]
+    post:
+      tags:
+      - wallets
+      operationId: post-wallet
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWalletRequest'
+            examples:
+              post-wallet:
+                value:
+                  host:
+                    type: Mobile
+                    device:
+                      id: 4c4256ad-4e32-4543-ac52-ea63d7e26cdb
+                      name: Johnnys Phone
+                      model: Pixel 7a
+                      os: Android
+                    app:
+                      id: de.epicompany.wallet
+                      name: EPI Wallet
+                  walletPublicKey:
+                    kty: RSA
+                    use: sig
+                    alg: RS256
+                    kid: c41387b5-1d0b-4ba5-9cfa-2e1c64ece728
+                    n: 9luZkzZ4zd04KSdmQmullBw4x8ZxNWfBTaADGgbpkjEW1-7nl1l8yHzdD0IaDOEil_kXuPV7j0zxrVO98YAnukW3BCPV_3LKvvlgBBqUnDODGFCla_SdMcS7wzXkHCWGSVEeex5SjrHgbCkmb_ypMJGzUoRztnw9b7ZXXxyZvakU00Gizgx3yiOOncIMuzd8bzQLLBNqzvINNAg21UdwQFsrw7y9-hdqDRlyNMT-zZ9MlXmKbNRYMl_FKi0NLoQRI-F6k5E3EsWcPMnZxSSyacPmsvhXPU5LXwSpG5qoWuH9-wxQXQdGCyqzgDcebylnK37fP2uadDbXKHy8TuV_eQ
+                    e: AQAB
+      responses:
+        '201':
+          description: Created
+          headers:
+            Location:
+              description: URL that points to the location of the new wallet resource. For more information about this response header, see [MDN web documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Location).
+              schema:
+                type: string
+          content:
+            application/hal+json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/WalletSchema'
+              examples:
+                post-wallet:
+                  value:
+                    id: 0fc3130f-5640-4453-8f27-129e860c8727
+                    walletName: Some Wallet
+                    host:
+                      type: Mobile
+                      device:
+                        id: 58c56856-e7c6-403a-9594-3e8ca1ceff0e
+                        name: Johnnys iPhone
+                        model: iPhone 14
+                      app:
+                        id: de.epicompany.wallet
+                        name: EPI Wallet
+                    walletPublicKey:
+                      kty: RSA
+                      use: sig
+                      alg: RS256
+                      kid: 74cf2532-c6c2-4586-acb3-6fce198acc5b
+                      n: vZl9LV2lmdaSn1CTfrpbIbkhuJZ4C-mb33JTSXGB9q7GuSW_eiFz5SUOK2p5JIXznabbazaywpYhyMBpw7tbnKSzBuQxRKQHPD-Li1hhV4abjr570hGmc0UyftpBWZz4_53-q6lp0hupi8getzDyfPiiDZvgyKIGHytYSvZCGeVHXzJQy6DNf2xyZxG8WwgKvpIcOi0FvlVDJgdlIQn3HGrW3xK1IJpHLzh_ucYDIhs4L864hdV2QzUZA7d_agbk7dbq7ZStZNF4J_KmbruouQ_edglZurKeh6xmiRcOqGfWqN-4gJXAT4gN6w_eslfkPAKRDOcyh4ig8GopQ6CD9w
+                      e: AQAB
+                    _links:
+                      self:
+                        href: https://api.epi-services.eu/api/wallets/0fc3130f-5640-4453-8f27-129e860c8727
+                      provisionings:
+                        href: https://api.epi-services.eu/api/wallets/0fc3130f-5640-4453-8f27-129e860c8727/provisionings
+                      paymentMeans:
+                        href: https://api.epi-services.eu/api/wallets/0fc3130f-5640-4453-8f27-129e860c8727/provision-payment-means
+                      notification:
+                        href: https://api.epi-services.eu/api/wallets/0fc3130f-5640-4453-8f27-129e860c8727/notification
+                    _embedded:
+                      paymentMeans: []
+        '400':
+          $ref: '#/components/responses/errorResponse400'
+        '404':
+          $ref: '#/components/responses/errorResponse404'
+        '422':
+          description: Unprocessable Entity - The request was well formed but was not followed due to semantic errors.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                ConsumerPspIsBeingMerged:
+                  $ref: '#/components/examples/ConsumerPSPIsBeingMergedProblem'
+      security:
+      - BearerAccessToken: []
+      summary: Create a wallet resource [Wallet]
+      description: "## Wallets\nA Wero digital wallet on a consumer\u2019s mobile device can hold one or more means of payment that are owned by the consumer. Wallets are represented technically by private/public\
+        \ key pairs for authenticating consumers.\n\n### Create a wallet resource\nWero digital wallet apps can register themselves with EPI central services by creating a Wallet resource through the following\
+        \ API request.\nNo two wallets can have the same ID. If the wallet creation call is triggered twice for the same device ID but with different public keys, two wallets are created with different\
+        \ wallet IDs. Every time the app is reinstalled even on the same device, the ID must change.\n## Scope\nThis endpoint call does not require a scope."
+components:
+  schemas:
+    WalletPublicKey:
+      title: Public key of the wallet instance on the device.
+      type: object
+      description: Public key of a key pair for the wallet instance on the device. The key must be [unique to the wallet](doc:wallets-and-cryptography#uniqueness-of-public-keys). Represented as a JSON Web
+        Key ([JWK](https://www.rfc-editor.org/rfc/rfc7517)).
+      oneOf:
+      - $ref: '#/components/schemas/RSAPublicJWK'
+      - $ref: '#/components/schemas/EllipticCurvePublicJWK'
+      discriminator:
+        propertyName: kty
+        mapping:
+          RSA: '#/components/schemas/RSAPublicJWK'
+          EC: '#/components/schemas/EllipticCurvePublicJWK'
+    RSAPublicJWK:
+      title: RSA Public Key
+      type: object
+      description: "Public key of an asymmetric RSA key pair.    \nRepresented as JSON Web Key ([JWK](https://www.rfc-editor.org/rfc/rfc7517))."
+      properties:
+        kid:
+          type: string
+          description: Key ID
+          example: 74cf2532-c6c2-4586-acb3-6fce198acc5b
+        kty:
+          type: string
+          description: 'Key Type: RSA or EC'
+          const: RSA
+        use:
+          type: string
+          description: Indicates whether a JWK is used for encrypting data or verifying the signature on data. Here, always `sig`.
+          const: sig
+        alg:
+          type: string
+          description: Identifies the algorithm intended for use with the key.
+          enum:
+          - RS256
+          - RS384
+          - RS512
+        n:
+          type: string
+          description: Modulus. Base64Url encoded.
+          example: vZl9LV2lmdaSn1CTfrpbIbkhuJZ4C-mb33JTSXGB9q7GuSW_eiFz5SUOK2p5JIXznabbazaywpYhyMBpw7tbnKSzBuQxRKQHPD-Li1hhV4abjr570hGmc0UyftpBWZz4_53-q6lp0hupi8getzDyfPiiDZvgyKIGHytYSvZCGeVHXzJQy6DNf2xyZxG8WwgKvpIcOi0FvlVDJgdlIQn3HGrW3xK1IJpHLzh_ucYDIhs4L864hdV2QzUZA7d_agbk7dbq7ZStZNF4J_KmbruouQ_edglZurKeh6xmiRcOqGfWqN-4gJXAT4gN6w_eslfkPAKRDOcyh4ig8GopQ6CD9w
+        e:
+          type: string
+          description: Exponent. Base64Url encoded.
+          example: AQAB
+      required:
+      - kid
+      - kty
+      - n
+      - e
+    PaymentSourceResource:
+      type: object
+      description: ''
+      oneOf:
+      - $ref: '#/components/schemas/PaymentSourceResourcePaymentAccount'
+      discriminator:
+        propertyName: type
+        mapping:
+          PaymentAccount: '#/components/schemas/PaymentSourceResourcePaymentAccount'
+    PaymentMeansSchema:
+      type: object
+      title: Wallet means of payment
+      description: 'A means of payment (or payment means) is a digital representation of a consumer''s payment source.
+
+
+        In the process of provisioning a Wero digital wallet, the consumer PSP adds information about the consumer''s payment sources to the Wallet Provisioning resource. Then, for each payment source,
+        the Wero digital wallet creates a ''paymentMeans'' resource, which is a sub-resource of the Wallet resource. The ''paymentMeans'' resources contain the payment source information.
+
+
+        When consumers consent to payments in their Wero digital wallets, they choose a means of payment, which indicates to the consumer PSP the payment source that the money is to come out of.'
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the means of payment.
+        consumerPspId:
+          type: string
+          format: uuid
+          description: ID of the consumer PSP that provisioned the means of payment.
+        publicKey:
+          $ref: '#/components/schemas/PaymentMeansPublicKey'
+        paymentSourceId:
+          type: string
+          format: uuid
+          description: ID of the corresponding payment source.
+        paymentSourceType:
+          $ref: '#/components/schemas/PaymentSourceType'
+        consumerInformation:
+          type: object
+          description: Object containing information about the corresponding consumer.
+          properties:
+            consumerId:
+              type: string
+              format: uuid
+              description: ID of the corresponding consumer.
+            status:
+              type: string
+              description: The status of the corresponding consumer.
+              oneOf:
+              - const: Active
+                description: The consumer is active.
+                title: Active
+              - const: Blocked
+                description: The consumer is blocked.
+                title: Blocked
+              - const: PendingConfirmation
+                description: The consumer is blocked and currently undergoing a screening in the Wero standalone app.
+                title: PendingConfirmation
+              - type: string
+                not:
+                  enum:
+                  - Active
+                  - Blocked
+                  - PendingConfirmation
+                description: Placeholder for a future status, to be defined.
+        _embedded:
+          type: object
+          description: Embedded related resources.
+          properties:
+            consumerPsp:
+              $ref: '#/components/schemas/consumerPSPDetailsSchema'
+            paymentSource:
+              $ref: '#/components/schemas/PaymentSourceResource'
+            paymentSourceProfile:
+              type: object
+              description: 'The payment source profile describes how the consumer''s payment information is displayed to other consumers and includes the payment source proxies. '
+              properties:
+                id:
+                  type: string
+                displayName:
+                  type: string
+                isDisplayNameObfuscated:
+                  type: boolean
+                  description: Indicates whether the consumer has chosen to display only an obfuscated (pseudonymised/masked) version of their name, instead of their full name, to other consumers in P2P
+                    transactions. By default, only the obfuscated name is displayed.
+                paymentSourceProxies:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      id:
+                        type: string
+                      value:
+                        type: string
+        _links:
+          type: object
+          description: HAL links to related resources.
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+      required:
+      - id
+      - _links
+      - paymentSourceId
+      - consumerPspId
+      - publicKey
+      - _embedded
+    CountryCode:
+      title: Country code
+      description: A country code in ISO 3166-1 alpha-2 format.
+      type: string
+      pattern: ^[A-Z]{2}$
+      enum:
+      - AF
+      - AX
+      - AL
+      - DZ
+      - AS
+      - AD
+      - AO
+      - AI
+      - AQ
+      - AG
+      - AR
+      - AM
+      - AW
+      - AU
+      - AT
+      - AZ
+      - BS
+      - BH
+      - BD
+      - BB
+      - BY
+      - BE
+      - BZ
+      - BJ
+      - BM
+      - BT
+      - BO
+      - BQ
+      - BA
+      - BW
+      - BV
+      - BR
+      - IO
+      - BN
+      - BG
+      - BF
+      - BI
+      - CV
+      - KH
+      - CM
+      - CA
+      - KY
+      - CF
+      - TD
+      - CL
+      - CN
+      - CX
+      - CC
+      - CO
+      - KM
+      - CG
+      - CD
+      - CK
+      - CR
+      - CI
+      - HR
+      - CU
+      - CW
+      - CY
+      - CZ
+      - DK
+      - DJ
+      - DM
+      - DO
+      - EC
+      - EG
+      - SV
+      - GQ
+      - ER
+      - EE
+      - ET
+      - FK
+      - FO
+      - FJ
+      - FI
+      - FR
+      - GF
+      - PF
+      - TF
+      - GA
+      - GM
+      - GE
+      - DE
+      - GH
+      - GI
+      - GR
+      - GL
+      - GD
+      - GP
+      - GU
+      - GT
+      - GG
+      - GN
+      - GW
+      - GY
+      - HT
+      - HM
+      - VA
+      - HN
+      - HK
+      - HU
+      - IS
+      - IN
+      - ID
+      - IR
+      - IQ
+      - IE
+      - IM
+      - IL
+      - IT
+      - JM
+      - JP
+      - JE
+      - JO
+      - KZ
+      - KE
+      - KI
+      - KP
+      - KR
+      - KW
+      - KG
+      - LA
+      - LV
+      - LB
+      - LS
+      - LR
+      - LY
+      - LI
+      - LT
+      - LU
+      - MO
+      - MK
+      - MG
+      - MW
+      - MY
+      - MV
+      - ML
+      - MT
+      - MH
+      - MQ
+      - MR
+      - MU
+      - YT
+      - MX
+      - FM
+      - MD
+      - MC
+      - MN
+      - ME
+      - MS
+      - MA
+      - MZ
+      - MM
+      - NA
+      - NR
+      - NP
+      - NL
+      - NC
+      - NZ
+      - NI
+      - NE
+      - NG
+      - NU
+      - NF
+      - MP
+      - 'NO'
+      - OM
+      - PK
+      - PW
+      - PS
+      - PA
+      - PG
+      - PY
+      - PE
+      - PH
+      - PN
+      - PL
+      - PT
+      - PR
+      - QA
+      - RE
+      - RO
+      - RU
+      - RW
+      - BL
+      - SH
+      - KN
+      - LC
+      - MF
+      - PM
+      - VC
+      - WS
+      - SM
+      - ST
+      - SA
+      - SN
+      - RS
+      - SC
+      - SL
+      - SG
+      - SX
+      - SK
+      - SI
+      - SB
+      - SO
+      - ZA
+      - GS
+      - SS
+      - ES
+      - LK
+      - SD
+      - SR
+      - SJ
+      - SZ
+      - SE
+      - CH
+      - SY
+      - TW
+      - TJ
+      - TZ
+      - TH
+      - TL
+      - TG
+      - TK
+      - TO
+      - TT
+      - TN
+      - TR
+      - TM
+      - TC
+      - TV
+      - UG
+      - UA
+      - AE
+      - GB
+      - US
+      - UM
+      - UY
+      - UZ
+      - VU
+      - VE
+      - VN
+      - VG
+      - VI
+      - WF
+      - EH
+      - YE
+      - ZM
+      - ZW
+      example: DE
+    PagedCollectionResourceLinks:
+      type: object
+      properties:
+        self:
+          $ref: '#/components/schemas/link'
+        first:
+          $ref: '#/components/schemas/link'
+        last:
+          $ref: '#/components/schemas/link'
+        prev:
+          $ref: '#/components/schemas/link'
+        next:
+          $ref: '#/components/schemas/link'
+      required:
+      - self
+      - first
+      - last
+    consumerPSPDetailsSchema:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Consumer PSP ID.
+        name:
+          type: string
+          description: Consumer PSP name.
+        countryCodeList:
+          type: array
+          description: List of codes of countries that the consumer PSP does business with in the ISO 3166-1 alpha-2 code format.
+          items:
+            $ref: '#/components/schemas/CountryCode'
+        apps:
+          type: array
+          description: List of apps available for this consumer PSP.
+          items:
+            type: object
+            description: Data about the App for this consumer PSP.
+            properties:
+              id:
+                type: string
+                format: uuid
+                description: App ID.
+              name:
+                type: string
+                description: App name.
+              icon:
+                $ref: '#/components/schemas/AppIcon'
+            required:
+            - id
+        _links:
+          type: object
+          description: HAL links to related resources.
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+        _embedded:
+          type: object
+          description: Embedded, related resources.
+          properties:
+            meta:
+              $ref: '#/components/schemas/consumerPspMetadata'
+      required:
+      - id
+      - name
+      - countryCodeList
+      - apps
+      - _embedded
+    CreateWalletRequest:
+      type: object
+      properties:
+        host:
+          $ref: '#/components/schemas/WalletHostSchema'
+        walletPublicKey:
+          $ref: '#/components/schemas/WalletPublicKey'
+      required:
+      - host
+      - walletPublicKey
+    PaymentSourceType:
+      type: string
+      description: "> \u2757\uFE0F This field is deprecated and will be removed after 31 Dec 2024. This field will be replaced by `_embedded.paymentSource.type`.\n\nPayment source type. This enumeration\
+        \ is extensible, meaning that additional values may be accepted in the future."
+      deprecated: true
+      oneOf:
+      - const: PaymentAccount
+        description: Payment source of type Payment Account.
+        title: PaymentAccount
+      - type: string
+        not:
+          enum:
+          - PaymentAccount
+        description: Any other payment source type value.
+        title: Any String
+    PaymentMeansPublicKey:
+      title: Public key of the provisioned means of payment.
+      type: object
+      description: Public key of the individual means of payment. The key must be [unique to the means of payment](doc:wallets-and-cryptography#uniqueness-of-public-keys). Represented as JSON Web Key ([JWK](https://www.rfc-editor.org/rfc/rfc7517)).
+        Consumer PSPs must create key pairs for each means of payment, even if the wallet app interacts only indirectly with EPI central services.
+      oneOf:
+      - $ref: '#/components/schemas/RSAPublicJWK'
+      - $ref: '#/components/schemas/EllipticCurvePublicJWK'
+      discriminator:
+        propertyName: kty
+        mapping:
+          RSA: '#/components/schemas/RSAPublicJWK'
+          EC: '#/components/schemas/EllipticCurvePublicJWK'
+    Currency:
+      type: string
+      description: The three-letter ISO 4217:2015 currency code for the transaction.
+      oneOf:
+      - const: EUR
+        description: EPI's home currency.
+        title: EPI's home currency
+      - type: string
+        not:
+          enum:
+          - EUR
+        description: Any other currency.
+        title: Any other currency
+    WalletHostMobileSchema:
+      type: object
+      properties:
+        type:
+          type: string
+          const: Mobile
+        device:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: 'ID of the device where the wallet is installed.
+
+                For iOS, you can use the `Identifier` for `Vendor`. For Android, you can use the `App Set Id`. For more information about iOS, see [Identifier for Vendor](https://developer.apple.com/documentation/uikit/uidevice/1620059-identifierforvendor).
+                For more information about Android, see [App Set Id](https://developers.google.com/android/reference/com/google/android/gms/appset/AppSetIdInfo).'
+              example: 4c4256ad-4e32-4543-ac52-ea63d7e26cdb
+            name:
+              type: string
+              description: A human-readable device name.
+              example: Johnnys iPhone
+              minLength: 1
+            model:
+              type: string
+              description: A human-readable device model name.
+              example: iPhone 12
+              minLength: 1
+            os:
+              type: string
+              description: The operating system of the device. This enumeration is extensible to accommodate future operating systems.
+              example: iOS
+              oneOf:
+              - const: iOS
+                title: iOS
+              - const: Android
+                title: Android
+              - type: string
+                not:
+                  enum:
+                  - iOS
+                  - Android
+                title: Any String
+          required:
+          - id
+          - name
+          - model
+        app:
+          type: object
+          properties:
+            id:
+              type: string
+              description: The ID of the app where the wallet is installed. For Android, use the ID of the package name. For iOS, use the bundle ID. For example, `eu.epicompany.wero.wallet` or `fr.mybank.mobilebanking`.
+                This ID must not be changed when the app name is changed.
+              minLength: 1
+            name:
+              type: string
+              description: Human readable app name.
+              example: MyBank Mobile Banking App Plus
+              minLength: 1
+          required:
+          - id
+          - name
+      required:
+      - type
+      - device
+      - app
+    DeviceAttestationChallengeSchema:
+      type: object
+      title: Device Attestation Challenge
+      description: In the device attestation process of a standalone app, the Wero wallet requests a challenge from EPI central services.  This challenge is used to bind an attestation to a single device.
+      properties:
+        value:
+          type: string
+          format: uuid
+          description: Challenge value.
+        createdAt:
+          type: string
+          description: Time at which the challenge was requested.
+          format: date-time
+          example: '2025-01-01T10:20:30.061200Z'
+        nextChallengeNotBefore:
+          type: string
+          description: The next challenge can be requested after this time.
+          format: date-time
+          example: '2025-01-01T10:22:30.061200Z'
+        expired:
+          type: boolean
+          default: false
+          description: Indicates whether a challenge is still valid or a new one needs to be requested.
+      required:
+      - challenge
+      - createdAt
+      - nextChallengeNotBefore
+      - expired
+    AliasIdentifier:
+      title: Alias account identifier
+      type: object
+      required:
+      - type
+      - alias
+      - maskedIban
+      description: The IBAN alias, which identifies the account if the PSP does not permit EPI to store IBANs.
+      properties:
+        type:
+          type: string
+          enum:
+          - Alias
+        alias:
+          type: string
+          description: The IBAN alias for this account.
+          pattern: ^[-a-zA-Z0-9/?:().,'+\s]{8,50}$
+        maskedIban:
+          type: string
+          description: 'The masked IBAN of this account. Since EPI has no information for generating a masked IBAN but needs the masked IBAN for display purposes, the PSP must provide the masked IBAN.
+
+            '
+          minLength: 8
+          maxLength: 34
+          example: DE12********7890
+    ConstraintViolationProblem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type only in the context of the provided endpoint.
+          const: /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          default: Constraint Violation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          default: 400
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+        violations:
+          type: array
+          description: A list of constraint violations.
+          items:
+            type: object
+            required:
+            - field
+            - message
+            properties:
+              field:
+                type: string
+                description: The name of the field that caused the constraint violation.
+              message:
+                type: string
+                description: A technical message that describes the constraint violation, in English.
+              userMessageKey:
+                type: string
+                description: A key that describes the type of constraint violation, useful to report user input validation error. The key can be used to look up a localised message for instance, that can
+                  then be interpolated using the `userMessageValue`.
+                example: constraint.string.min-length
+                oneOf:
+                - type: string
+                  title: Standard constraint violation key
+                  description: 'All known standard constraint violation keys: * **constraint.required**: The field is required. * **constraint.type**: The field must be of the correct type. * **constraint.enum**:
+                    The field must be one of the allowed values. `userMessageValue` contains the list as a string value. * **constraint.const**: The field must be a specific value. `userMessageValue` contains
+                    the value as a string value. * **constraint.number.multiple-of**: The field must be a multiple of a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-inclusive**:
+                    The field must be less than or equal to a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.maximum-exclusive**: The field must be less
+                    than a specific number. `userMessageValue` contains the number as a string value. * **constraint.number.minimum-inclusive**: The field must be greater than or equal to a specific number.
+                    `userMessageValue` contains the number as a string value.            * **constraint.number.minimum-exclusive**: The field must be greater than a specific number. `userMessageValue` contains
+                    the number as a string value. * **constraint.string.max-length**: The field must be at most a specific number of characters long. `userMessageValue` contains the number as a string value.
+                    * **constraint.string.min-length**: The field must be at least a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.min-length-not-blank**:
+                    The field must be at least a specific number of characters long and not blank. `userMessageValue` contains the number as a string value. * **constraint.string.max-graphemes**: The field
+                    must be at most a specific number of graphemes long. `userMessageValue` contains the number as a string value. * **constraint.string.pattern**: The field must match a specific pattern.
+                    * **constraint.string.length**: The field must be a specific number of characters long. `userMessageValue` contains the number as a string value. * **constraint.string.url**: The field
+                    must be a valid URL. * **constraint.string.url-https**: The field must be a valid HTTPS URL. * **constraint.string.uuid4**: The field must be a valid UUID v4. * **constraint.string.email**:
+                    The field must be a valid email address. * **constraint.string.phone-number**: The field must be a valid phone number. * **constraint.duration.min-seconds**: The field must be at least
+                    a specific number of seconds long. `userMessageValue` contains the number as a string value. * **constraint.duration.max-days**: The field must be at most a specific number of days long.
+                    `userMessageValue` contains the number as a string value. * **constraint.datetime.before**: The field must be before a specific date and time. `userMessageValue` contains the `datetime`
+                    as a timestamp string value. * **constraint.array.min-items**: The field must contain at least a specific number of items. `userMessageValue` contains the number as a string value. *
+                    **constraint.array.max-items**: The field must contain at most a specific number of items. `userMessageValue` contains the number as a string value. * **constraint.array.unique-items**:
+                    The field must contain only unique items. * **constraint.amount.maximum**: The field must be less than or equal to a specific amount. * **constraint.amount.minimum**: The field must
+                    be greater than or equal to a specific amount. * **constraint.currency-supported**: The field must be a supported currency.'
+                  enum:
+                  - constraint.required
+                  - constraint.type
+                  - constraint.enum
+                  - constraint.const
+                  - constraint.number.multiple-of
+                  - constraint.number.maximum-inclusive
+                  - constraint.number.maximum-exclusive
+                  - constraint.number.minimum-inclusive
+                  - constraint.number.minimum-exclusive
+                  - constraint.string.max-length
+                  - constraint.string.min-length
+                  - constraint.string.min-length-not-blank
+                  - constraint.string.max-graphemes
+                  - constraint.string.pattern
+                  - constraint.string.length
+                  - constraint.string.url
+                  - constraint.string.url-https
+                  - constraint.string.uuid4
+                  - constraint.string.email
+                  - constraint.string.phone-number
+                  - constraint.duration.min-seconds
+                  - constraint.duration.max-days
+                  - constraint.datetime.before
+                  - constraint.array.min-items
+                  - constraint.array.max-items
+                  - constraint.array.unique-items
+                  - constraint.amount.maximum
+                  - constraint.amount.minimum
+                  - constraint.currency-supported
+                - type: string
+                  description: Placeholder for a future user message key.
+                  title: Placeholder for future message keys
+                  not:
+                    enum:
+                    - constraint.required
+                    - constraint.type
+                    - constraint.enum
+                    - constraint.const
+                    - constraint.number.multiple-of
+                    - constraint.number.maximum-inclusive
+                    - constraint.number.maximum-exclusive
+                    - constraint.number.minimum-inclusive
+                    - constraint.number.minimum-exclusive
+                    - constraint.string.max-length
+                    - constraint.string.min-length
+                    - constraint.string.min-length-not-blank
+                    - constraint.string.max-graphemes
+                    - constraint.string.pattern
+                    - constraint.string.length
+                    - constraint.string.url
+                    - constraint.string.url-https
+                    - constraint.string.uuid4
+                    - constraint.string.email
+                    - constraint.string.phone-number
+                    - constraint.duration.min-seconds
+                    - constraint.duration.max-days
+                    - constraint.datetime.before
+                    - constraint.array.min-items
+                    - constraint.array.max-items
+                    - constraint.array.unique-items
+                    - constraint.amount.maximum
+                    - constraint.amount.minimum
+                    - constraint.currency-supported
+              userMessageValue:
+                type: string
+                description: A string value that can be used to replace a placeholder in the localised message.
+      required:
+      - type
+      - title
+      - status
+      - violations
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: A URI reference that uniquely identifies the problem type, only in the context of the provided endpoint.
+          default: about:blank
+          example: /some/uri-reference
+          not:
+            enum:
+            - /problem/constraint-violation
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          example: some title for the error situation
+        status:
+          type: integer
+          format: int32
+          description: The 'status' member is only advisory; it conveys the HTTP status code used for the convenience of the consumer. This attribute is always the same as the status code in the actual
+            HTTP response.
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem, which helps locate the problem and describes how to proceed.
+          example: some description for the error situation
+        instance:
+          type: string
+          format: uri-reference
+          description: A URI reference that identifies the specific occurrence of the problem, for example, by adding a fragment identifier or sub-path to the problem type. Can be used to locate the root
+            of the problem in the source code.
+          example: /some/uri-reference#specific-occurrence-context
+        callId:
+          type: string
+          description: A call ID that identifies the specific occurrence of the problem.
+          example: 00000000000000000000000000000000-0000000000000000
+      required:
+      - type
+      - title
+      - status
+    WalletHostBrowserSchema:
+      type: object
+      properties:
+        type:
+          type: string
+          const: Browser
+        device:
+          type: object
+          properties:
+            id:
+              type: string
+              description: Identifier of the device or the user.
+              example: 4c4256ad-4e32-4543-ac52-ea63d7e26cdb
+              minLength: 1
+              maxLength: 100
+            name:
+              type: string
+              description: A human-readable browser name.
+              example: Mozilla Firefox
+              minLength: 1
+              maxLength: 100
+            version:
+              type: string
+              description: A human-readable browser version.
+              example: '42.5'
+              minLength: 1
+              maxLength: 100
+          required:
+          - id
+          - name
+          - version
+        app:
+          type: object
+          properties:
+            id:
+              type: string
+              description: The ID of the app where the wallet is installed.
+              minLength: 1
+            name:
+              type: string
+              description: Human readable app name.
+              example: MyBank Online Banking App Plus
+              minLength: 1
+          required:
+          - id
+          - name
+      required:
+      - type
+      - device
+      - app
+    PaymentSourceStatus:
+      description: The status of the payment source. This enumeration is extensible; additional values might be added.
+      oneOf:
+      - const: Active
+        description: The payment source is active.
+        title: Active
+      - const: Blocked
+        description: The payment source is blocked.
+        title: Blocked
+      - const: Closed
+        description: The payment source is closed.
+        title: Closed
+      - type: string
+        not:
+          enum:
+          - Active
+          - Blocked
+          - Closed
+        description: Placeholder for a future reason, to be defined.
+        title: Any String
+    page:
+      type: object
+      examples:
+      - size: 1
+        totalElements: 1
+        totalPages: 1
+        number: 0
+        requestedPageSize: 10
+        limitReached: false
+      properties:
+        size:
+          type: integer
+          description: The number of elements on the page.
+        totalElements:
+          type: integer
+          description: The total number of elements available with the query.
+        totalPages:
+          type: integer
+          description: The total number of pages available, using the requested page size.
+        number:
+          type: integer
+          description: The number of the current page. Page numbers start at `0` and continue to the total number of pages.
+        requestedPageSize:
+          type: integer
+          description: The requested page size. The value of "size" might differ for the last page if the last page is not full.
+        limitReached:
+          type: boolean
+          description: If `true`, an internal limit when retrieving results was exceeded. Not all elements are returned.
+      description: A paginated resource is a HAL resource. The resource contains the page object, which describes the provided subset of data. The data is provided as an embedded collection resource. The
+        name of the collection depends on the endpoint. HAL links are also provided, for navigation.
+      title: Structure of a paginated response
+      required:
+      - size
+      - totalElements
+      - totalPages
+      - number
+      - requestedPageSize
+      - limitReached
+    AppIcon:
+      type: object
+      description: Icon of the registered consumer PSP app. This can either be a mobile or web specific application.
+      properties:
+        contentBase64:
+          type: string
+          description: The content of the image as a base64 data string.
+          example: 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
+        type:
+          type: string
+          description: The type of the image as a media type string, either JPG or PNG.
+          example: image/png
+      required:
+      - contentBase64
+      - type
+    DeviceAttestationSchema:
+      type: object
+      title: Device Attestation
+      description: 'Before a consumer can use the Wero standalone digital app, the mobile device the app is installed needs to be attested. '
+      properties:
+        verdict:
+          type: object
+          description: Object containing information about the device attestation process.
+          properties:
+            status:
+              type: string
+              description: The status of the attestation.
+              oneOf:
+              - const: Pending
+                description: The wallet has requested a challenge. The device attestation is still outstanding.
+                title: Pending
+              - const: Passed
+                description: The device has been successfully attested.
+                title: Passed
+              - const: Failed
+                description: The attestation of the device has failed.
+                title: Failed
+              - type: string
+                not:
+                  enum:
+                  - Pending
+                  - Passed
+                  - Failed
+                description: Placeholder for a future status, to be defined.
+        _embedded:
+          type: object
+          description: Embedded related resources.
+          properties:
+            challenge:
+              $ref: '#/components/schemas/DeviceAttestationChallengeSchema'
+    WalletHostSchema:
+      title: The host creating the wallet
+      type: object
+      oneOf:
+      - $ref: '#/components/schemas/WalletHostMobileSchema'
+      - $ref: '#/components/schemas/WalletHostBrowserSchema'
+      discriminator:
+        propertyName: type
+        mapping:
+          Mobile: '#/components/schemas/WalletHostMobileSchema'
+          Browser: '#/components/schemas/WalletHostBrowserSchema'
+    IbanIdentifier:
+      title: IBAN account identifier
+      type: object
+      required:
+      - type
+      - iban
+      description: An IBAN, if the consumer PSP permits EPI to store IBANs. This IBAN must have a valid checksum and a country code from a supported country. For more information, see the [IBAN checker](https://www.iban.com/iban-checker)
+        on the IBAN validation and calculation website.
+      properties:
+        type:
+          type: string
+          enum:
+          - IBAN
+        iban:
+          $ref: '#/components/schemas/IBAN'
+    link:
+      type: object
+      properties:
+        href:
+          type: string
+          format: uri
+        name:
+          type: string
+      required:
+      - href
+    WalletSchema:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique ID of the wallet.
+        walletName:
+          type: string
+          description: Wallet name (inferred).
+        host:
+          $ref: '#/components/schemas/WalletHostSchema'
+        consumerId:
+          type: string
+          format: uuid
+          description: ID of the consumer who owns the wallet.
+        walletPublicKey:
+          $ref: '#/components/schemas/WalletPublicKey'
+        _links:
+          type: object
+          description: HAL links to related resources.
+          required:
+          - self
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+            paymentMeans:
+              $ref: '#/components/schemas/link'
+            provisionings:
+              $ref: '#/components/schemas/link'
+            notification:
+              $ref: '#/components/schemas/link'
+            challenge:
+              $ref: '#/components/schemas/link'
+        _embedded:
+          type: object
+          description: Embedded, related resources.
+          required:
+          - paymentMeans
+          properties:
+            paymentMeans:
+              type: array
+              items:
+                $ref: '#/components/schemas/PaymentMeansSchema'
+            attestation:
+              $ref: '#/components/schemas/DeviceAttestationSchema'
+      required:
+      - id
+      - host
+      - _links
+      - walletName
+      - _embedded
+    IBAN:
+      type: string
+    consumerPspMetadata:
+      type: object
+      example:
+        icon:
+          contentBase64: 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
+          type: image/png
+        textColor: '#000000'
+        primaryColor: '#FFFFFF'
+        secondaryColor: '#A0A0A0'
+      title: Consumer PSP metadata
+      description: This metadata is provided by the consumer PSP during enrolment with EPI and should be used by clients to display the correct corporate identity of the consumer PSP.
+      properties:
+        icon:
+          $ref: '#/components/schemas/AppIcon'
+        textColor:
+          type: string
+          pattern: ^#[0-9ABCDEFabcdef]{6}$|^rgb\(\d{1,3}, \d{1,3}, \d{1,3}\)$
+          description: "> \u2757\uFE0F This field is deprecated and will be removed in March 2025.\nThe text colour as a CSS colour string."
+          example: '#000000'
+          deprecated: true
+        primaryColor:
+          type: string
+          pattern: ^#[0-9ABCDEFabcdef]{6}$|^rgb\(\d{1,3}, \d{1,3}, \d{1,3}\)$
+          description: The primary colour as a CSS colour string. Used mainly for backgrounds.
+          example: '#FFFFFF'
+        secondaryColor:
+          type: string
+          pattern: ^#[0-9ABCDEFabcdef]{6}$|^rgb\(\d{1,3}, \d{1,3}, \d{1,3}\)$
+          description: "> \u2757\uFE0F This field is deprecated and will be removed in March 2025.\nThe secondary colour as a CSS colour string. Used mainly for buttons and borders."
+          example: '#A0A0A0'
+          deprecated: true
+    PaymentSourceResourcePaymentAccount:
+      type: object
+      required:
+      - type
+      - id
+      - consumerPspId
+      - externalId
+      - currency
+      - status
+      - pro
+      - displayDigits
+      - _links
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Payment source ID.
+        type:
+          type: string
+          enum:
+          - PaymentAccount
+        consumerPspId:
+          type: string
+          format: uuid
+          description: PSP ID of the payment source.
+        externalId:
+          type: string
+          description: External ID of the payment source, provided by the consumer PSP. Uniquely identifies a payment source outside of the EPI context. For EPI to correlate payment sources across different
+            wallet installations, consumer PSPs must provide the same external ID for a particular payment source across wallets.
+        accountHolder:
+          type: string
+          description: Name of the account holder.
+        accountIdentifier:
+          $ref: '#/components/schemas/AccountIdentifier'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        pro:
+          type: boolean
+          description: Indicates whether the payment account is a 'pro' account, for P2Pro payments.
+        status:
+          $ref: '#/components/schemas/PaymentSourceStatus'
+        displayDigits:
+          type: string
+          description: The display digits of the account identifier. This field can be used for end-user display purposes, such as a masked IBAN.
+        countryCode:
+          $ref: '#/components/schemas/CountryCode'
+        _links:
+          type: object
+          properties:
+            self:
+              $ref: '#/components/schemas/link'
+      examples:
+      - id: e369792d-ce10-4fb3-afbf-6a9632cb5156
+        type: PaymentAccount
+        consumerPspId: d6de77b0-e129-49ec-ae13-6ccec0c8c692
+        externalId: a4912834-0e8b-41cb-a5ce-992bfa51279f
+        accountHolder: John Doe
+        accountIdentifier:
+          type: IBAN
+          iban: DE89370400440532013000
+        currency: EUR
+        status: Active
+        displayDigits: DE89xxxxxxxxxxxxxx3000
+        countryCode: DE
+        pro: false
+        _links:
+          self:
+            href: https://api.epi-services.eu/api/payment-sources/e369792d-ce10-4fb3-afbf-6a9632cb5156
+    AccountIdentifier:
+      description: 'A polymorphic type that identifies an account. The value can be of one of the following types.
+
+        - An IBAN, if the consumer PSP permits EPI to store IBANs. This IBAN must have a valid checksum and a country code from a supported country. For more information, see the [IBAN checker](https://www.iban.com/iban-checker)
+        on the IBAN validation and calculation website.
+
+        - An alias for the IBAN, if the consumer PSP does not permit EPI to store IBANs.
+
+        '
+      type: object
+      oneOf:
+      - $ref: '#/components/schemas/IbanIdentifier'
+      - $ref: '#/components/schemas/AliasIdentifier'
+      discriminator:
+        propertyName: type
+        mapping:
+          IBAN: '#/components/schemas/IbanIdentifier'
+          Alias: '#/components/schemas/AliasIdentifier'
+    EllipticCurvePublicJWK:
+      title: Elliptic Curve Public Key
+      type: object
+      description: "Public key of an asymmetric elliptic-curve key pair.  \nRepresented as  JSON Web Key (JWK) https://www.rfc-editor.org/rfc/rfc7517"
+      properties:
+        kid:
+          type: string
+          description: Key ID
+          example: 74cf2532-c6c2-4586-acb3-6fce198acc5b
+        kty:
+          type: string
+          description: 'Key Type: RSA or EC'
+          const: EC
+        use:
+          type: string
+          description: Indicates whether a JWK is used for encrypting data or verifying the signature on data. Here, always `sig`.
+          const: sig
+        alg:
+          type: string
+          description: Identifies the algorithm intended for use with the key.
+          enum:
+          - ES256
+          - ES384
+          - ES512
+        crv:
+          type: string
+          description: Name of selected curve
+          enum:
+          - P-256
+          - P-384
+          - P-521
+        x:
+          type: string
+          description: X Coordinate
+        y:
+          type: string
+          description: Y Coordinate
+      required:
+      - kid
+      - kty
+      - crv
+      - x
+      - y
